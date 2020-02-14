@@ -1,0 +1,46 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/dyne/Documents/Courses/CS-E5530 Virtual Acoustics/Assignments/2020/Assignment 2/ISM_project/Native/AudioPluginVADemo/AudioPluginInterface.h
+assert.h
+-
+
+/Users/dyne/Documents/Courses/CS-E5530 Virtual Acoustics/Assignments/2020/Assignment 2/ISM_project/Native/AudioPluginVADemo/AudioPluginUtil.cpp
+AudioPluginUtil.h
+/Users/dyne/Documents/Courses/CS-E5530 Virtual Acoustics/Assignments/2020/Assignment 2/ISM_project/Native/AudioPluginVADemo/AudioPluginUtil.h
+stdarg.h
+-
+PluginList.h
+/Users/dyne/Documents/Courses/CS-E5530 Virtual Acoustics/Assignments/2020/Assignment 2/ISM_project/Native/AudioPluginVADemo/PluginList.h
+PluginList.h
+/Users/dyne/Documents/Courses/CS-E5530 Virtual Acoustics/Assignments/2020/Assignment 2/ISM_project/Native/AudioPluginVADemo/PluginList.h
+
+/Users/dyne/Documents/Courses/CS-E5530 Virtual Acoustics/Assignments/2020/Assignment 2/ISM_project/Native/AudioPluginVADemo/AudioPluginUtil.h
+AudioPluginInterface.h
+/Users/dyne/Documents/Courses/CS-E5530 Virtual Acoustics/Assignments/2020/Assignment 2/ISM_project/Native/AudioPluginVADemo/AudioPluginInterface.h
+math.h
+-
+stdlib.h
+-
+stdio.h
+-
+string.h
+-
+assert.h
+-
+windows.h
+-
+pthread.h
+-
+
+/Users/dyne/Documents/Courses/CS-E5530 Virtual Acoustics/Assignments/2020/Assignment 2/ISM_project/Native/AudioPluginVADemo/PluginList.h
+
+/Users/dyne/Documents/Courses/CS-E5530 Virtual Acoustics/Assignments/2020/Assignment 2/ISM_project/Native/AudioPluginVADemo/Plugin_ConvolutionReverb.cpp
+AudioPluginUtil.h
+/Users/dyne/Documents/Courses/CS-E5530 Virtual Acoustics/Assignments/2020/Assignment 2/ISM_project/Native/AudioPluginVADemo/AudioPluginUtil.h
+
