@@ -396,7 +396,8 @@ public class ISMReverb : MonoBehaviour
                 ir[i_path] += Mathf.Pow(
                     (1 - renderSettings.Absorption) * (1 - renderSettings.DiffuseProportion), 
                     path.points.Count / 2
-                ) / (path.totalPathLength + float.Epsilon);
+                ) / (path.totalPathLength + float.Epsilon)
+                * Mathf.Pow(-1, path.points.Count); // flip phase on every reflection
             }
         }
     }
