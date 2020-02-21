@@ -317,6 +317,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   planeCenters: []
   planeNormals: []
+--- !u!114 &93049537
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 93049531}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 277a123a37b8d43c6bfd1cdd7e5caa81, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  absorption: 0.5
+  diffuseProportion: 0.3
 --- !u!114 &93437809 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 114857793491224324, guid: ea00f7b61d6437049b950faec7f153d1,
@@ -477,7 +491,7 @@ MonoBehaviour:
   mixer: {fileID: 24100000, guid: 212df8c23b907e4459456b406a9342e7, type: 2}
   absorption: 0.8
   diffuseProportion: 0.2
-  nISMReflections: 1
+  nISMReflections: 2
   irLength: 0.2
 --- !u!4 &650753653
 Transform:

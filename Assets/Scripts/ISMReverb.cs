@@ -80,6 +80,9 @@ public class ISMReverb : MonoBehaviour
         /// List of ray wall hit points in the path
         /// </summary>
         public List<Vector3> points;
+        // track the absorption and diffuse proportion properties of each reflection
+        public List<float> absorptionPath;
+        public List<float> diffuseProportionPath;
 
         /// <summary>
         /// Total path length
@@ -94,6 +97,8 @@ public class ISMReverb : MonoBehaviour
         public RaycastHitPath(float pathLength)
         {
             points = new List<Vector3>();
+            absorptionPath = new List<float>();
+            diffuseProportionPath = new List<float>();
             totalPathLength = pathLength;
         }
     }
@@ -324,80 +329,126 @@ public class ISMReverb : MonoBehaviour
                 // found the path invalid
                 while (i_next != -1 && isValidPath)
                 {
+                    // initialize absorption properties of this potential reflection
+                    float reflAbsorption = renderSettings.Absorption;
+                    float reflDiffuseProportion = renderSettings.DiffuseProportion;
+
                     // Get the current source
                     ImageSource imageSource = imageSources[i_next];
+
                     // (E3) YOUR CODE HERE: Determine ray direction and length
-                    Vector3 dir = originNormal;
-                    float max_length = Vector3.Distance(origin, imageSource.pos);
+                    Vector3 dir        = originNormal;
+                    float   max_length = Vector3.Distance(origin, imageSource.pos);
+                    
                     // Trace the ray
                     RaycastHit hit;
                     // First, check that the outgoing ray is reflected from the wall
                     if (!Physics.Raycast(origin, dir, out hit, max_length, ism_colliders_only))
-                    {
+                    {   
                         // The ray is sent in the wall, so the path is invalid
                         isValidPath = false;
-                        Debug.Log("Invalid Path - no wall collision found");
+                        // Debug.Log("Invalid Path - no wall collision found");
                     }
-                    else if (imageSource.i_parent == -1)
+                    else if (imageSource.i_parent == -1)  // Handle the REAL source
                     {
-                        Debug.Log("Source hit distance: " + hit.distance);
-                        // Handle the real source
-                        // (E3) YOUR CODE HERE: check that the path is not obstructed                        
+                        // (E3) YOUR CODE HERE: 
+                        // check that the path to the real source is not obstructed                        
                         if (Mathf.Abs(max_length - hit.distance) < 0.2) {
                             isValidPath = true;
-                            Debug.Log("Path to real source VALID");
+                            // Debug.Log("Path to real source VALID");
                         } else {
                             isValidPath = false;
-                            Debug.Log(max_length);
-                            Debug.Log(hit.distance);
+                            // Debug.Log(max_length); //hit.distance
                         }
-                        Debug.Log("Path to source");
+                        // Debug.Log("Path to source");
                     }
-                    else
+                    else // Handle the IMAGE source
                     {
-                        // Handle image sources
-                        // (E3) YOUR CODE HERE: check that the ray hits a wall on mirroring plane
+                        // (E3) YOUR CODE HERE: 
+                        // check that the ray hits a wall on mirroring plane
                         isValidPath = ISMMath.PlaneEQ(hit, imageSource);
+                        
                         // Debug.Log("Path to wall");
+                        // Debug.Log(hit.collider);
+
+                        // get the wall's reflection properties
+                        if (hit.collider.GetComponent<AbsorptionMaterial>()) {
+                            reflAbsorption = hit.collider.GetComponent<AbsorptionMaterial>().absorption;
+                            reflDiffuseProportion = hit.collider.GetComponent<AbsorptionMaterial>().diffuseProportion;
+                            // Debug.Log(reflAbsorption);
+                            // Debug.Log(reflDiffuseProportion);
+                        } // else { /*default absorption*/ }
                     }
-                    // Add the traced path if it is still valid
+
+                    // if the path is valid, add hit properties the hit path
                     if (isValidPath)
                     {
-                        // Path is valid, add the hit point to the ray path
                         // (E3) YOUR CODE HERE
+                        // Path is valid, add the hit point to the ray path
                         path.points.Add(hit.point);
+                        path.absorptionPath.Add(reflAbsorption);
+                        path.diffuseProportionPath.Add(reflDiffuseProportion);
                         // Prepare to send the ray towards the next image source
                         i_next = imageSource.i_parent;
                         origin = hit.point;
                         if (i_next != -1) originNormal = imageSources[i_next].pos-origin;
                     }
                 }
-                // Add the traced path if it is still valid
+
+                // if the final path is valid, add to the list of hitPaths
                 if (isValidPath)
                 {
                     // (E3) YOUR CODE HERE
                     hitPaths.Add(path);
-                    Debug.Log("Path added");
+                    // Debug.Log("Path added");
                 }
             }
         }
+
         // === E5: create image source impulse response ===
         foreach (var path in hitPaths)
         {
+            // (E5) YOUR CODE HERE
             // Calculate the sample that the ray path contributes to
-            int i_path = Mathf.RoundToInt( // <-- (E5) YOUR CODE HERE
+            int i_path = Mathf.RoundToInt(
                 AudioSettings.outputSampleRate * path.totalPathLength / ISMRenderSettings.speedOfSound
                 ); 
-            Debug.Log("impulse path " + i_path);
+            // Debug.Log("impulse path " + i_path);
+
             if (i_path < ir.Length)
             {
                 // (E5) YOUR CODE HERE: Determine the signal magnitude  w.r.t.
                 // the amount of wall hits in the path
-                ir[i_path] += Mathf.Pow(
-                    (1 - renderSettings.Absorption) * (1 - renderSettings.DiffuseProportion), 
-                    path.points.Count / 2
-                ) / (path.totalPathLength + float.Epsilon)
-                * Mathf.Pow(-1, path.points.Count); // flip phase on every reflection
+                float totalReflAbsorption = 1.0f;
+                for (var i = 0; i < path.absorptionPath.Count; ++i)
+                {
+                    totalReflAbsorption *= (1 - path.absorptionPath[i]) * (1 - path.diffuseProportionPath[i]);
+                }
+                
+                float defaultAbsorption = Mathf.Pow(
+                        (1 - renderSettings.Absorption) * (1 - renderSettings.DiffuseProportion), 
+                        path.points.Count / 2
+                );
+
+                Debug.Log("\t\t\tImp at " + i_path + ", total refl: " + totalReflAbsorption);
+                Debug.Log("\t\t\t\twould be: " + defaultAbsorption);
+
+                // impulse with custom reflection properties
+                float impulse = totalReflAbsorption / (path.totalPathLength + float.Epsilon);
+                // default impulse
+                // float impulse = defaultAbsorption / (path.totalPathLength + float.Epsilon);
+
+                // flip phase on every reflection
+                impulse *= Mathf.Pow(-1, path.points.Count); 
+
+                // add path impulse to IR
+                ir[i_path] += impulse;
+
+                // ir[i_path] += Mathf.Pow(
+                //     (1 - renderSettings.Absorption) * (1 - renderSettings.DiffuseProportion), 
+                //     path.points.Count / 2
+                // ) / (path.totalPathLength + float.Epsilon)
+                // * Mathf.Pow(-1, path.points.Count); // flip phase on every reflection
             }
         }
     }
