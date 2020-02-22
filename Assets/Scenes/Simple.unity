@@ -329,8 +329,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 277a123a37b8d43c6bfd1cdd7e5caa81, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  absorption: 0.5
-  diffuseProportion: 0.3
+  absorption: 0.3
+  diffuseProportion: 0.2
 --- !u!114 &93437809 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 114857793491224324, guid: ea00f7b61d6437049b950faec7f153d1,
@@ -491,7 +491,7 @@ MonoBehaviour:
   mixer: {fileID: 24100000, guid: 212df8c23b907e4459456b406a9342e7, type: 2}
   absorption: 0.8
   diffuseProportion: 0.2
-  nISMReflections: 2
+  nISMReflections: 4
   irLength: 0.2
 --- !u!4 &650753653
 Transform:
@@ -541,6 +541,7 @@ GameObject:
   - component: {fileID: 1254423978}
   - component: {fileID: 1254423977}
   - component: {fileID: 1254423976}
+  - component: {fileID: 1254423981}
   m_Layer: 0
   m_Name: Cube
   m_TagString: Untagged
@@ -635,6 +636,20 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1254423981
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1254423975}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 277a123a37b8d43c6bfd1cdd7e5caa81, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  absorption: 0.8
+  diffuseProportion: 0.6
 --- !u!1001 &1607645445
 PrefabInstance:
   m_ObjectHideFlags: 0
