@@ -357,52 +357,72 @@ public class ISMReverb : MonoBehaviour
                 }
             }
         }
-
-        // 1. 
-        // Handle direct path as exceptional case
-        // 2. 
-        // Create a possible path for all image sources
-        //  - path.rayOrigin = ListenerPosition
-        //  - path.rayDirection = imageSources[i].pos - origin
-        //  - path.curSrc = i (i.e. imageSources[i])
-        // 3.
-        // For the current order of reflection,
-        //  - iterate through all possible paths
-        //    - (parallel) generate hit results from path.rayOrigin to path.rayDirection
-        // 4.
-        // iterate through hits
-        //  did it collide with something?
-        //  yes
-        //    is the real source? i.e. image source index 0?
-        //    yes
-        //    - store it
-        //    - add path to hitPathList
-        //    - stage to remove path from possible path
-        //    no
-        //    - store hit point
-        //    - store absorption/diffusion coeffs
-        //    update for next iteration:
-        //    - path.curSrc = imageSource[curSrc].parent
-        //    - path.rayOrigin = hit point
-        //    - path.rayDirection = imageSource[curSrc].pos - path.rayOrigin
-        //  no
-        //    - stage to remove path from possible path
-        // 5.
-        // reverse staged removal indices
-        // for all staged removal indices, possiblePaths.removeAt(removeIndices)
-        // 6.
-        // loop back to 3.
-
-        /* 
-            handle the direct path as a singular case 
+        
+        /*
+        1. 
+        Handle direct path as exceptional case
+        2. 
+        Create a possible path for all image sources
+         - path.rayOrigin = ListenerPosition
+         - path.rayDirection = imageSources[i].pos - origin
+         - path.curSrc = i (i.e. imageSources[i])
+        3.
+        For the current order of reflection,
+         - iterate through all possible paths
+           - (parallel) generate hit results from path.rayOrigin to path.rayDirection
+        4.
+        iterate through hits
+         did it collide with something?
+         yes
+           is the real source? i.e. image source index 0?
+           yes
+           - store it
+           - add path to hitPathList
+           - stage to remove path from possible path
+           no
+           - store hit point
+           - store absorption/diffusion coeffs
+           update for next iteration:
+           - path.curSrc = imageSource[curSrc].parent
+           - path.rayOrigin = hit point
+           - path.rayDirection = imageSource[curSrc].pos - path.rayOrigin
+         no
+           - stage to remove path from possible path
+        5.
+        reverse staged removal indices
+        for all staged removal indices, possiblePaths.removeAt(removeIndices)
+        6.
+        loop back to 3.
         */
 
         // A mask for game objects using ISMCollider
         int ism_colliders_only = LayerMask.GetMask("ISM colliders");
+
+        /* 
+        1. handle the direct path as a singular case 
+        */
+        float srcLstnrDist = Vector3.Distance(imageSources[0].pos, ListenerPosition);
+                        
+        // Check that the path can contribute to the impulse response
+        if (srcLstnrDist < renderSettings.MaximumRayLength)
+        {
+                Vector3 origin = ListenerPosition;
+                Vector3 originNormal = imageSources[0].pos - origin;
+                RaycastHit hit;
+                // First, check that the outgoing ray is reflected from the wall
+                if (Physics.Raycast(origin, originNormal, out hit, srcLstnrDist))
+                {
+                    if (Mathf.Abs(srcLstnrDist - hit.distance) < 0.2) {
+                        Debug.Log("Clean direct path!");
+                        RaycastHitPath path = new RaycastHitPath(srcLstnrDist);
+                        hitPaths.Add(path);
+                    }
+                }
+        }
         
-        // 2. 
-        // create a possible path for all image sources within bounds
-        // initialize possible RaycastHitPaths
+        /*
+        2. Create a possible path for all image sources within bounds
+        */
         for (var i = 0; i < imageSources.Count; ++i)
         {
             // Calculate path length
@@ -420,15 +440,13 @@ public class ISMReverb : MonoBehaviour
             }
         }
 
-        // 3.
-        // For the current order of reflection:
-        // - iterate through all possible paths
-        //   - (parallel) generate hit results from path.rayOrigin to path.rayDirection
+        /*
+        3. For each order of reflection, iterate through all possible paths.
+            In parallel, generate hit results from path.rayOrigin to path.rayDirection.
+        */
         for (var i_refl = 0; i_refl < renderSettings.NumberOfISMReflections; ++i_refl)
         {
             // create new command/results list for each valid path
-            // var commands = new NativeArray<RaycastCommand>(possiblePaths.Count, Allocator.Temp);
-            // var results  = new NativeArray<RaycastHit>(possiblePaths.Count, Allocator.Temp);
             var commands = new NativeArray<RaycastCommand>(possiblePaths.Count, Allocator.TempJob);
             var results  = new NativeArray<RaycastHit>(possiblePaths.Count, Allocator.TempJob);
 
@@ -443,28 +461,12 @@ public class ISMReverb : MonoBehaviour
             JobHandle handle = RaycastCommand.ScheduleBatch(commands, results, 1, default(JobHandle));
             handle.Complete();  // Wait for the batch processing job to complete
 
-            /* 4.
-            iterate through hits
-             did it collide with something?
-             yes
-               is the real source? i.e. image source index 0?
-               yes
-               - store it
-               - add path to hitPathList
-               - stage to remove path from possible path
-               no
-               - store hit point
-               - store absorption/diffusion coeffs
-               update for next iteration:
-               - path.curSrc = imageSource[curSrc].parent
-               - path.rayOrigin = hit point
-               - path.rayDirection = imageSource[curSrc].pos - path.rayOrigin
-             no
-               - stage to remove path from possible path
-            */
-            
-            // indices of paths to be removed if path becomes invalid
-            List<int> removeIdxs = new List<int>();   
+            /*
+            4. Iterate through hits, check path validity.
+                Trim along the way so only valid paths survive.
+            */ 
+            List<int> removeIdxs = new List<int>(); // indices of paths to be removed if path becomes invalid
+           
             // iterate ver all hit results
             for (var i = 0; i < possiblePaths.Count; ++i)
             {
@@ -472,20 +474,20 @@ public class ISMReverb : MonoBehaviour
                 RaycastHit hit = results[i];
 
                 // Did the path collide with something?
-                if (!hit.collider)          // If hit.collider is null there was no hit
+                if (!hit.collider)        // if hit.collider is null there was no hit
                 {
-                    removeIdxs.Add(i);    // No collision, stage to remove this path
+                    removeIdxs.Add(i);    // no collision, stage to remove this path
                 } 
                 else 
                 {
                     if (possiblePaths[i].curSrcIdx == 0) 
                     {
                         // collides with real source, made it!
+                        Debug.Log("Made it back to the real source!");
                         hitPaths.Add(possiblePaths[i]); // store it: add path to hitPathList
-                        removeIdxs.Add(i);            // stage to remove path from possiblePaths search list
-                        
-                        Debug.Log("collides with source, made it!");
+                        removeIdxs.Add(i);              // stage to remove path from possiblePaths search list
                     }
+
                     // Check that the ray hits a wall on mirroring plane
                     else if ( ISMMath.PlaneEQ(hit, imageSources[possiblePaths[i].curSrcIdx]) )
                     {                        
@@ -494,13 +496,13 @@ public class ISMReverb : MonoBehaviour
                         float reflDiffuseProportion;
 
                         if (hit.collider.GetComponent<AbsorptionMaterial>()) {
-                            reflAbsorption = hit.collider.GetComponent<AbsorptionMaterial>().absorption;
+                            reflAbsorption        = hit.collider.GetComponent<AbsorptionMaterial>().absorption;
                             reflDiffuseProportion = hit.collider.GetComponent<AbsorptionMaterial>().diffuseProportion;
                         } 
                         else 
                         {
                             // default absorption from ISMRenderSettings
-                            reflAbsorption = renderSettings.Absorption;
+                            reflAbsorption        = renderSettings.Absorption;
                             reflDiffuseProportion = renderSettings.DiffuseProportion;
                         }
 
@@ -509,8 +511,8 @@ public class ISMReverb : MonoBehaviour
                         possiblePaths[i].absorptionPath.Add(reflAbsorption);
                         possiblePaths[i].diffuseProportionPath.Add(reflDiffuseProportion);
                         // update for next iteration:
-                        possiblePaths[i].curSrcIdx = imageSources[possiblePaths[i].curSrcIdx].i_parent;
-                        possiblePaths[i].rayOrigin = hit.point;
+                        possiblePaths[i].curSrcIdx    = imageSources[possiblePaths[i].curSrcIdx].i_parent;
+                        possiblePaths[i].rayOrigin    = hit.point;
                         possiblePaths[i].rayDirection = imageSources[possiblePaths[i].curSrcIdx].pos - hit.point;
                     }
                     else
@@ -524,7 +526,9 @@ public class ISMReverb : MonoBehaviour
             results.Dispose();
             commands.Dispose();
 
-            // trim invalid paths from possiblePaths List
+            /*
+            5.  Reverse-remove invalid possiblePaths
+            */
             removeIdxs.Reverse();
             foreach (var rmvIdx in removeIdxs)
             {
@@ -636,7 +640,6 @@ public class ISMReverb : MonoBehaviour
             int i_path = Mathf.RoundToInt(
                 AudioSettings.outputSampleRate * path.totalPathLength / ISMRenderSettings.speedOfSound
                 ); 
-            // Debug.Log("impulse path " + i_path);
 
             if (i_path < ir.Length)
             {
@@ -645,35 +648,28 @@ public class ISMReverb : MonoBehaviour
                 float totalReflAbsorption = 1.0f;
                 for (var i = 0; i < path.absorptionPath.Count; ++i)
                 {
-                    totalReflAbsorption *= (1 - path.absorptionPath[i]) * (1 - path.diffuseProportionPath[i]);
+                    float absorb  = (1 - path.absorptionPath[i]);
+                    float reflect = (1 - path.diffuseProportionPath[i]);
+                    totalReflAbsorption *=  absorb * reflect;
                 }
                 
+                // for comparison
                 float defaultAbsorption = Mathf.Pow(
                         (1 - renderSettings.Absorption) * (1 - renderSettings.DiffuseProportion), 
                         path.points.Count / 2
                 );
-
-                Debug.Log("\t\t\tImp at " + i_path + ", total refl: " + totalReflAbsorption);
-                Debug.Log("\t\t\t\twould be: " + defaultAbsorption);
+                // Debug.Log("\t\t\tImp at " + i_path + ", total refl: " + totalReflAbsorption);
+                // Debug.Log("\t\t\t\twould be: " + defaultAbsorption);
 
                 // (4.2) Acoustic material descriptions 
-                // impulse with reflection properties based on surface reflections
-                float impulse = totalReflAbsorption / (path.totalPathLength + float.Epsilon);
-                // default impulse
-                // float impulse = defaultAbsorption / (path.totalPathLength + float.Epsilon);
+                float impulse = totalReflAbsorption / (path.totalPathLength + float.Epsilon);  // with material absorption
+                // float impulse = defaultAbsorption / (path.totalPathLength + float.Epsilon); // default impulse
 
                 // (4.1.1) Flipping the pressure contribution 
-                // flip phase on every reflection
-                impulse *= Mathf.Pow(-1, path.points.Count); 
+                impulse *= Mathf.Pow(-1, path.points.Count); // flip phase on every reflection
 
                 // add path impulse to IR
                 ir[i_path] += impulse;
-
-                // ir[i_path] += Mathf.Pow(
-                //     (1 - renderSettings.Absorption) * (1 - renderSettings.DiffuseProportion), 
-                //     path.points.Count / 2
-                // ) / (path.totalPathLength + float.Epsilon)
-                // * Mathf.Pow(-1, path.points.Count); // flip phase on every reflection
             }
         }
     }
