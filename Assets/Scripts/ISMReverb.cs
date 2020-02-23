@@ -359,6 +359,7 @@ public class ISMReverb : MonoBehaviour
         }
         
         /*
+        (4.3) Parallel ISM
         1. 
         Handle direct path as exceptional case
         2. 
