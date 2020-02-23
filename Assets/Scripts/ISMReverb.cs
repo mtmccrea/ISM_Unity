@@ -459,7 +459,7 @@ public class ISMReverb : MonoBehaviour
             }
 
             // Schedule the batch of raycasts
-            JobHandle handle = RaycastCommand.ScheduleBatch(commands, results, 1, default(JobHandle));
+            JobHandle handle = RaycastCommand.ScheduleBatch(commands, results, 64, default(JobHandle));
             handle.Complete();  // Wait for the batch processing job to complete
 
             /*
