@@ -346,11 +346,9 @@ public class ISMReverb : MonoBehaviour
                         {
                             // Parent source is in front of the plane, calculate mirrored position
                             Vector3 N = transform.TransformDirection(n_plane);
-                            //Vector3 mirroredPosition = parentSource.pos - 2 * transform.TransformDirection(n_plane) * sourcePlaneDistance; 
-                            //Vector3 mirroredPosition = parentSource.pos - 2 * N * sourcePlaneDistance / Vector3.Dot(N,N);
                             Vector3 mirroredPosition = parentSource.pos - 2 * n_plane * sourcePlaneDistance;
-                            // Add the image source
                             // (E2) YOUR CODE HERE
+                            // Add the image source
                             imageSources.Add(new ImageSource(mirroredPosition, p_plane, n_plane, i_parent));
                         }
                     }
@@ -414,7 +412,7 @@ public class ISMReverb : MonoBehaviour
                 if (Physics.Raycast(origin, originNormal, out hit, srcLstnrDist))
                 {
                     if (Mathf.Abs(srcLstnrDist - hit.distance) < 0.2) {
-                        Debug.Log("Clean direct path!");
+                        // Debug.Log("Clean direct path!");
                         RaycastHitPath path = new RaycastHitPath(srcLstnrDist);
                         hitPaths.Add(path);
                     }
@@ -484,7 +482,7 @@ public class ISMReverb : MonoBehaviour
                     if (possiblePaths[i].curSrcIdx == 0) 
                     {
                         // collides with real source, made it!
-                        Debug.Log("Made it back to the real source!");
+                        // Debug.Log("Made it back to the real source!");
                         hitPaths.Add(possiblePaths[i]); // store it: add path to hitPathList
                         removeIdxs.Add(i);              // stage to remove path from possiblePaths search list
                     }
@@ -507,7 +505,7 @@ public class ISMReverb : MonoBehaviour
                             reflDiffuseProportion = renderSettings.DiffuseProportion;
                         }
 
-                        // // path still alive, store hit point and reflection properties
+                        // path still alive, store hit point and reflection properties
                         possiblePaths[i].points.Add(hit.point);
                         possiblePaths[i].absorptionPath.Add(reflAbsorption);
                         possiblePaths[i].diffuseProportionPath.Add(reflDiffuseProportion);
@@ -518,7 +516,7 @@ public class ISMReverb : MonoBehaviour
                     }
                     else
                     {
-                        // didn't hit wall on mirror plane (???)
+                        // didn't hit wall on mirror plane
                         removeIdxs.Add(i);
                     }
                 }
@@ -535,103 +533,7 @@ public class ISMReverb : MonoBehaviour
             {
                 possiblePaths.RemoveAt(rmvIdx);
             }
-
         }
-
-        // // === E3: Cast rays ===
-        // // A mask for game objects using ISMCollider
-        // int ism_colliders_only = LayerMask.GetMask("ISM colliders");
-        // // For each image source
-        // for (var i = 0; i < imageSources.Count; ++i)
-        // {
-        //     // Calculate path length
-        //     float pathLength = Vector3.Distance(imageSources[i].pos, ListenerPosition);
-                        
-        //     // Check that the path can contribute to the impulse response
-        //     if (pathLength < renderSettings.MaximumRayLength)
-        //     {
-        //         // Create a container for this path
-        //         RaycastHitPath path = new RaycastHitPath(pathLength);
-
-        //         // (E3) YOUR CODE HERE: Set the listener as the starting point for
-        //         // the ray
-        //         Vector3 origin = ListenerPosition;
-        //         Vector3 originNormal = imageSources[i].pos - origin;
-        //         int i_next = i;
-        //         bool isValidPath = true;
-                
-        //         // Loop through reflections until we have either processed the original 
-        //         // source or found the path invalid
-        //         while (i_next != -1 && isValidPath)
-        //         {
-        //             // initialize absorption properties of this potential reflection
-        //             float reflAbsorption = renderSettings.Absorption;
-        //             float reflDiffuseProportion = renderSettings.DiffuseProportion;
-
-        //             // Get the current source
-        //             ImageSource imageSource = imageSources[i_next];
-
-        //             // (E3) YOUR CODE HERE: Determine ray direction and length
-        //             Vector3 dir        = originNormal;
-        //             float   max_length = Vector3.Distance(origin, imageSource.pos);
-                    
-        //             // Trace the ray
-        //             RaycastHit hit;
-        //             // First, check that the outgoing ray is reflected from the wall
-        //             if (!Physics.Raycast(origin, dir, out hit, max_length, ism_colliders_only))
-        //             {   
-        //                 // No wall collision, so the path is invalid
-        //                 isValidPath = false;
-        //                 // Debug.Log("Invalid Path - no wall collision found");
-        //             }
-        //             else if (imageSource.i_parent == -1)  // Handle the REAL source
-        //             {   // (E3) YOUR CODE HERE: 
-        //                 // check that the path to the real source is not obstructed                        
-        //                 if (Mathf.Abs(max_length - hit.distance) < 0.2) {
-        //                     isValidPath = true;
-        //                     // Debug.Log("Path to real source VALID");
-        //                 } else {
-        //                     isValidPath = false;
-        //                 }
-        //             }
-        //             else // Handle the IMAGE source
-        //             {   // (E3) YOUR CODE HERE: 
-        //                 // check that the ray hits a wall on mirroring plane
-        //                 // Debug.Log("Path to wall");
-        //                 isValidPath = ISMMath.PlaneEQ(hit, imageSource);
-                        
-        //                 // get the wall's reflection properties
-        //                 if (hit.collider.GetComponent<AbsorptionMaterial>()) {
-        //                     reflAbsorption = hit.collider.GetComponent<AbsorptionMaterial>().absorption;
-        //                     reflDiffuseProportion = hit.collider.GetComponent<AbsorptionMaterial>().diffuseProportion;
-        //                 } // else ... default absorption from ISMRenderSettings
-        //             }
-        //             path.isValid = isValidPath;
-
-        //             // if the path is valid, add hit properties of the hit path
-        //             if (isValidPath)
-        //             {
-        //                 // (E3) YOUR CODE HERE
-        //                 // Path is valid, add the hit point to the ray path
-        //                 path.points.Add(hit.point);
-        //                 path.absorptionPath.Add(reflAbsorption);
-        //                 path.diffuseProportionPath.Add(reflDiffuseProportion);
-        //                 // Prepare to send the ray towards the next image source
-        //                 i_next = imageSource.i_parent;
-        //                 origin = hit.point;
-        //                 if (i_next != -1) originNormal = imageSources[i_next].pos-origin;
-        //             }
-        //         }
-
-        //         // if the final path is valid, add to the list of hitPaths
-        //         if (isValidPath)
-        //         {
-        //             // (E3) YOUR CODE HERE
-        //             hitPaths.Add(path);
-        //             // Debug.Log("Path added");
-        //         }
-        //     }
-        // }
 
         // === E5: create image source impulse response ===
         foreach (var path in hitPaths)
@@ -655,10 +557,10 @@ public class ISMReverb : MonoBehaviour
                 }
                 
                 // for comparison
-                float defaultAbsorption = Mathf.Pow(
-                        (1 - renderSettings.Absorption) * (1 - renderSettings.DiffuseProportion), 
-                        path.points.Count / 2
-                );
+                // float defaultAbsorption = Mathf.Pow(
+                //         (1 - renderSettings.Absorption) * (1 - renderSettings.DiffuseProportion), 
+                //         path.points.Count / 2
+                // );
                 // Debug.Log("\t\t\tImp at " + i_path + ", total refl: " + totalReflAbsorption);
                 // Debug.Log("\t\t\t\twould be: " + defaultAbsorption);
 
