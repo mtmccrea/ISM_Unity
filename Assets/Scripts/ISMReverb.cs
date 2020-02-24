@@ -74,59 +74,6 @@ public class ISMReverb : MonoBehaviour
         }
     }
 
-
-    // /// <summary>
-    // /// A container struct for ray paths
-    // /// </summary>
-    // public struct RaycastHitPath
-    // {
-    //     /// <summary>
-    //     /// List of ray wall hit points in the path
-    //     /// </summary>
-    //     public List<Vector3> points;
-
-    //     /// <summary>
-    //     /// Total path length
-    //     /// </summary>
-    //     public float totalPathLength;
-
-    //     // track the absorption and diffuse proportion properties of each reflection
-    //     public List<float> absorptionPath;
-    //     public List<float> diffuseProportionPath;
-        
-    //     /// <summary>
-    //     /// raycast origin for current part of path
-    //     /// </summary>
-       
-    //     public Vector3 rayOrigin
-    //     /// <summary>
-    //     /// raycast direction for current part of path
-    //     /// </summary>
-       
-    //     public Vector3 rayDirection
-    //     /// <summary>
-    //     /// source the ray points to at current part of path
-    //     /// </summary>
-    //     public int curSrcIdx
-        
-    
-    //     /// <summary>
-    //     /// A constructor.
-    //     /// </summary>
-    //     /// <param name="pathLength">Length of the path</param>
-    //     public RaycastHitPath(float pathLength)
-    //     {
-    //         points = new List<Vector3>();
-    //         totalPathLength = pathLength;
-
-    //         absorptionPath = new List<float>();
-    //         diffuseProportionPath = new List<float>();
-    //         rayOrigin = Vector3.forward;
-    //         rayDirection = Vector3.forward;
-    //         curSrcIdx = 0;
-    //     }
-    // }
-
     // A container struct for ray paths
     public class RaycastHitPath
     {
@@ -243,6 +190,35 @@ public class ISMReverb : MonoBehaviour
     /// The time when the impulse response is synced next time
     /// </summary>
     double nextSync;
+
+
+    // This job applies gravity to each objects vecocity in the simulation
+    struct PrepareRaycastCommands : IJobParallelFor
+    {
+        // Jobs declare all data that will be accessed in the job
+        // By default containers are assumed to be read & write
+        // By declaring it as read only, multiple jobs are allowed to access the data in parallel
+        [ReadOnly]
+        public NativeArray<Vector3> RaycastOrigins;         // possible paths
+        [ReadOnly]
+        public NativeArray<Vector3> RaycastDirections;      // image sources
+        [ReadOnly]
+        public NativeArray<float> MaxDists;
+
+        public NativeArray<RaycastCommand> RaycastCommands;
+        public int ColliderMask;
+
+        // The code actually running on the job
+        public void Execute(int i)
+        {
+            RaycastCommands[i] = new RaycastCommand(
+                RaycastOrigins[i], RaycastDirections[i], 
+                MaxDists[i],
+                ColliderMask
+                );
+        }
+    }
+
 
     // === METHODS ===
     
@@ -447,20 +423,41 @@ public class ISMReverb : MonoBehaviour
         */
         for (var i_refl = 0; i_refl < renderSettings.NumberOfISMReflections; ++i_refl)
         {
-            // create new command/results list for each valid path
-            var commands = new NativeArray<RaycastCommand>(possiblePaths.Count, Allocator.TempJob);
-            var results  = new NativeArray<RaycastHit>(possiblePaths.Count, Allocator.TempJob);
+            int numPossiblePaths   = possiblePaths.Count;
+            // create new command/hits list for each valid path
+            var RCCommands         = new NativeArray<RaycastCommand>(numPossiblePaths, Allocator.TempJob);
+            var RCHits             = new NativeArray<RaycastHit>(numPossiblePaths, Allocator.TempJob);
+            var NextPathOrigins    = new NativeArray<Vector3>(numPossiblePaths, Allocator.TempJob);
+            var NextPathDirections = new NativeArray<Vector3>(numPossiblePaths, Allocator.TempJob);
+            var PathLengths        = new NativeArray<float>(numPossiblePaths, Allocator.TempJob);
 
-            // for all possiblePaths, iterate through the first order of reflections
-            int cmdIdx = 0;
-            foreach (var thisPath in possiblePaths)
+            for (int i = 0; i<numPossiblePaths; ++i)
             {
-                commands[cmdIdx++] = new RaycastCommand(thisPath.rayOrigin, thisPath.rayDirection); 
+                NextPathOrigins[i] = possiblePaths[i].rayOrigin;
+                NextPathDirections[i] = possiblePaths[i].rayDirection;
+                PathLengths[i] = possiblePaths[i].totalPathLength;
             }
 
+            // for all possiblePaths, iterate through the first order of reflections
+            // int cmdIdx = 0;
+            // foreach (var thisPath in possiblePaths)
+            // {
+            //     commands[cmdIdx++] = new RaycastCommand(thisPath.rayOrigin, thisPath.rayDirection); 
+            // }
+            var setupRaycastsJob  = new PrepareRaycastCommands()
+            {
+                RaycastOrigins    = NextPathOrigins,
+                RaycastDirections = NextPathDirections,
+                MaxDists          = PathLengths,
+                RaycastCommands   = RCCommands,
+                ColliderMask      = ism_colliders_only
+            };
+            
+            var setupDependency   = setupRaycastsJob.Schedule(numPossiblePaths, 64,  default(JobHandle));
+
             // Schedule the batch of raycasts
-            JobHandle handle = RaycastCommand.ScheduleBatch(commands, results, 64, default(JobHandle));
-            handle.Complete();  // Wait for the batch processing job to complete
+            var RCJob = RaycastCommand.ScheduleBatch(RCCommands, RCHits, 64, setupDependency);
+            RCJob.Complete();  // Wait for the batch processing job to complete
 
             /*
             4. Iterate through hits, check path validity.
@@ -472,7 +469,7 @@ public class ISMReverb : MonoBehaviour
             for (var i = 0; i < possiblePaths.Count; ++i)
             {
                 // Copy the result.
-                RaycastHit hit = results[i];
+                RaycastHit hit = RCHits[i];
 
                 // Did the path collide with something?
                 if (!hit.collider)        // if hit.collider is null there was no hit
@@ -524,8 +521,10 @@ public class ISMReverb : MonoBehaviour
                 }
             }
             // Dispose of the parallel buffers
-            results.Dispose();
-            commands.Dispose();
+            RCHits.Dispose();
+            RCCommands.Dispose();
+            NextPathOrigins.Dispose();
+            NextPathDirections.Dispose();
 
             /*
             5.  Reverse-remove invalid possiblePaths
