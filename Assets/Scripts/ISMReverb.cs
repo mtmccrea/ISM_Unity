@@ -424,6 +424,8 @@ public class ISMReverb : MonoBehaviour
         for (var i_refl = 0; i_refl < renderSettings.NumberOfISMReflections; ++i_refl)
         {
             int numPossiblePaths   = possiblePaths.Count;
+            // Debug.Log("number of commands to schedule: " + numPossiblePaths);
+
             // create new command/hits list for each valid path
             var RCCommands         = new NativeArray<RaycastCommand>(numPossiblePaths, Allocator.TempJob);
             var RCHits             = new NativeArray<RaycastHit>(numPossiblePaths, Allocator.TempJob);
@@ -438,12 +440,6 @@ public class ISMReverb : MonoBehaviour
                 PathLengths[i] = possiblePaths[i].totalPathLength;
             }
 
-            // for all possiblePaths, iterate through the first order of reflections
-            // int cmdIdx = 0;
-            // foreach (var thisPath in possiblePaths)
-            // {
-            //     commands[cmdIdx++] = new RaycastCommand(thisPath.rayOrigin, thisPath.rayDirection); 
-            // }
             var setupRaycastsJob  = new PrepareRaycastCommands()
             {
                 RaycastOrigins    = NextPathOrigins,
@@ -453,10 +449,10 @@ public class ISMReverb : MonoBehaviour
                 ColliderMask      = ism_colliders_only
             };
             
-            var setupDependency   = setupRaycastsJob.Schedule(numPossiblePaths, 64,  default(JobHandle));
+            var setupDependency   = setupRaycastsJob.Schedule(numPossiblePaths, 16,  default(JobHandle));
 
             // Schedule the batch of raycasts
-            var RCJob = RaycastCommand.ScheduleBatch(RCCommands, RCHits, 64, setupDependency);
+            var RCJob = RaycastCommand.ScheduleBatch(RCCommands, RCHits, 16, setupDependency);
             RCJob.Complete();  // Wait for the batch processing job to complete
 
             /*
@@ -481,7 +477,7 @@ public class ISMReverb : MonoBehaviour
                     if (possiblePaths[i].curSrcIdx == 0) 
                     {
                         // collides with real source, made it!
-                        Debug.Log("Made it back to the real source!");
+                        // Debug.Log("Made it back to the real source!");
                         hitPaths.Add(possiblePaths[i]); // store it: add path to hitPathList
                         removeIdxs.Add(i);              // stage to remove path from possiblePaths search list
                     }
@@ -504,7 +500,7 @@ public class ISMReverb : MonoBehaviour
                             reflDiffuseProportion = renderSettings.DiffuseProportion;
                         }
 
-                        // // path still alive, store hit point and reflection properties
+                        // path still alive, store hit point and reflection properties
                         possiblePaths[i].points.Add(hit.point);
                         possiblePaths[i].absorptionPath.Add(reflAbsorption);
                         possiblePaths[i].diffuseProportionPath.Add(reflDiffuseProportion);
@@ -525,6 +521,7 @@ public class ISMReverb : MonoBehaviour
             RCCommands.Dispose();
             NextPathOrigins.Dispose();
             NextPathDirections.Dispose();
+            PathLengths.Dispose();
 
             /*
             5.  Reverse-remove invalid possiblePaths
@@ -536,101 +533,6 @@ public class ISMReverb : MonoBehaviour
             }
 
         }
-
-        // // === E3: Cast rays ===
-        // // A mask for game objects using ISMCollider
-        // int ism_colliders_only = LayerMask.GetMask("ISM colliders");
-        // // For each image source
-        // for (var i = 0; i < imageSources.Count; ++i)
-        // {
-        //     // Calculate path length
-        //     float pathLength = Vector3.Distance(imageSources[i].pos, ListenerPosition);
-                        
-        //     // Check that the path can contribute to the impulse response
-        //     if (pathLength < renderSettings.MaximumRayLength)
-        //     {
-        //         // Create a container for this path
-        //         RaycastHitPath path = new RaycastHitPath(pathLength);
-
-        //         // (E3) YOUR CODE HERE: Set the listener as the starting point for
-        //         // the ray
-        //         Vector3 origin = ListenerPosition;
-        //         Vector3 originNormal = imageSources[i].pos - origin;
-        //         int i_next = i;
-        //         bool isValidPath = true;
-                
-        //         // Loop through reflections until we have either processed the original 
-        //         // source or found the path invalid
-        //         while (i_next != -1 && isValidPath)
-        //         {
-        //             // initialize absorption properties of this potential reflection
-        //             float reflAbsorption = renderSettings.Absorption;
-        //             float reflDiffuseProportion = renderSettings.DiffuseProportion;
-
-        //             // Get the current source
-        //             ImageSource imageSource = imageSources[i_next];
-
-        //             // (E3) YOUR CODE HERE: Determine ray direction and length
-        //             Vector3 dir        = originNormal;
-        //             float   max_length = Vector3.Distance(origin, imageSource.pos);
-                    
-        //             // Trace the ray
-        //             RaycastHit hit;
-        //             // First, check that the outgoing ray is reflected from the wall
-        //             if (!Physics.Raycast(origin, dir, out hit, max_length, ism_colliders_only))
-        //             {   
-        //                 // No wall collision, so the path is invalid
-        //                 isValidPath = false;
-        //                 // Debug.Log("Invalid Path - no wall collision found");
-        //             }
-        //             else if (imageSource.i_parent == -1)  // Handle the REAL source
-        //             {   // (E3) YOUR CODE HERE: 
-        //                 // check that the path to the real source is not obstructed                        
-        //                 if (Mathf.Abs(max_length - hit.distance) < 0.2) {
-        //                     isValidPath = true;
-        //                     // Debug.Log("Path to real source VALID");
-        //                 } else {
-        //                     isValidPath = false;
-        //                 }
-        //             }
-        //             else // Handle the IMAGE source
-        //             {   // (E3) YOUR CODE HERE: 
-        //                 // check that the ray hits a wall on mirroring plane
-        //                 // Debug.Log("Path to wall");
-        //                 isValidPath = ISMMath.PlaneEQ(hit, imageSource);
-                        
-        //                 // get the wall's reflection properties
-        //                 if (hit.collider.GetComponent<AbsorptionMaterial>()) {
-        //                     reflAbsorption = hit.collider.GetComponent<AbsorptionMaterial>().absorption;
-        //                     reflDiffuseProportion = hit.collider.GetComponent<AbsorptionMaterial>().diffuseProportion;
-        //                 } // else ... default absorption from ISMRenderSettings
-        //             }
-        //             path.isValid = isValidPath;
-
-        //             // if the path is valid, add hit properties of the hit path
-        //             if (isValidPath)
-        //             {
-        //                 // (E3) YOUR CODE HERE
-        //                 // Path is valid, add the hit point to the ray path
-        //                 path.points.Add(hit.point);
-        //                 path.absorptionPath.Add(reflAbsorption);
-        //                 path.diffuseProportionPath.Add(reflDiffuseProportion);
-        //                 // Prepare to send the ray towards the next image source
-        //                 i_next = imageSource.i_parent;
-        //                 origin = hit.point;
-        //                 if (i_next != -1) originNormal = imageSources[i_next].pos-origin;
-        //             }
-        //         }
-
-        //         // if the final path is valid, add to the list of hitPaths
-        //         if (isValidPath)
-        //         {
-        //             // (E3) YOUR CODE HERE
-        //             hitPaths.Add(path);
-        //             // Debug.Log("Path added");
-        //         }
-        //     }
-        // }
 
         // === E5: create image source impulse response ===
         foreach (var path in hitPaths)
