@@ -249,10 +249,8 @@ public class ISMReverb : MonoBehaviour
             // Clear old image sources
             imageSources.Clear();
             // === E1: Add direct sound ===
-            // Add the original source to the image sources list
             // (E1) YOUR CODE HERE
-
-            // retrieve position of the loudspeaker object
+            // Add the original source to the image sources list
             imageSources.Add(new ImageSource(SourcePosition));
 
             // For each order of reflection
@@ -266,7 +264,6 @@ public class ISMReverb : MonoBehaviour
                 i_begin = i_end;
                 i_end = imageSources.Count;
                 // For each parent to reflect
-                // for (var i_parent = i_begin)
                 for (var i_parent = i_begin; i_parent < i_end; ++i_parent) // <-- (E4) YOUR CODE HERE
                 {
                     // === E2: Calculate image source positions ===
@@ -288,17 +285,16 @@ public class ISMReverb : MonoBehaviour
                         {
                             // Parent source is in front of the plane, calculate mirrored position
                             Vector3 N = transform.TransformDirection(n_plane);
-                            //Vector3 mirroredPosition = parentSource.pos - 2 * transform.TransformDirection(n_plane) * sourcePlaneDistance; 
-                            //Vector3 mirroredPosition = parentSource.pos - 2 * N * sourcePlaneDistance / Vector3.Dot(N,N);
                             Vector3 mirroredPosition = parentSource.pos - 2 * n_plane * sourcePlaneDistance;
-                            // Add the image source
                             // (E2) YOUR CODE HERE
+                            // Add the image source
                             imageSources.Add(new ImageSource(mirroredPosition, p_plane, n_plane, i_parent));
                         }
                     }
                 }
             }
         }
+
         // === E3: Cast rays ===
         // A mask for game objects using ISMCollider
         int ism_colliders_only = LayerMask.GetMask("ISM colliders");
@@ -336,29 +332,22 @@ public class ISMReverb : MonoBehaviour
                     {
                         // The ray is sent in the wall, so the path is invalid
                         isValidPath = false;
-                        Debug.Log("Invalid Path - no wall collision found");
                     }
                     else if (imageSource.i_parent == -1)
                     {
-                        Debug.Log("Source hit distance: " + hit.distance);
-                        // Handle the real source
-                        // (E3) YOUR CODE HERE: check that the path is not obstructed                        
+                        // (E3) YOUR CODE HERE 
+                        // Handle the real source: check that the path is not obstructed                        
                         if (Mathf.Abs(max_length - hit.distance) < 0.2) {
                             isValidPath = true;
-                            Debug.Log("Path to real source VALID");
                         } else {
                             isValidPath = false;
-                            Debug.Log(max_length);
-                            Debug.Log(hit.distance);
                         }
-                        Debug.Log("Path to source");
                     }
                     else
                     {
                         // Handle image sources
                         // (E3) YOUR CODE HERE: check that the ray hits a wall on mirroring plane
                         isValidPath = ISMMath.PlaneEQ(hit, imageSource);
-                        // Debug.Log("Path to wall");
                     }
                     // Add the traced path if it is still valid
                     if (isValidPath)
@@ -377,7 +366,6 @@ public class ISMReverb : MonoBehaviour
                 {
                     // (E3) YOUR CODE HERE
                     hitPaths.Add(path);
-                    Debug.Log("Path added");
                 }
             }
         }
@@ -388,7 +376,6 @@ public class ISMReverb : MonoBehaviour
             int i_path = Mathf.RoundToInt( // <-- (E5) YOUR CODE HERE
                 AudioSettings.outputSampleRate * path.totalPathLength / ISMRenderSettings.speedOfSound
                 ); 
-            Debug.Log("impulse path " + i_path);
             if (i_path < ir.Length)
             {
                 // (E5) YOUR CODE HERE: Determine the signal magnitude  w.r.t.
