@@ -234,6 +234,8 @@ public class ISMReverb : MonoBehaviour
         // Start the raytracer loop
         double stopTime = AudioSettings.dspTime + timeLimit;
         Vector3 listenerPosition = renderSettings.ListenerPosition;
+
+        int rayCount = 0;
         while (AudioSettings.dspTime < stopTime)
         {
             // === E1: Cast a new ray towards random direction ===
@@ -346,6 +348,7 @@ public class ISMReverb : MonoBehaviour
                 dir = Quaternion.FromToRotation(Vector3.up, surfaceNormal) * dir;
             }
         }
+        // Debug.Log("traced " + rayCount + " paths.");
     }
 
 
