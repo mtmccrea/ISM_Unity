@@ -265,14 +265,18 @@ public class ISMReverb : MonoBehaviour
                 rayCount++;
 
                 // === E2: Calculate current energy ===
-                // If the ISM reflections are still considered, take only the 
-                // diffuse part
+                // If the ISM reflections are still considered, take only the diffuse part
                 if (n_hit++ < renderSettings.NumberOfISMReflections)
                 {
-                    energy *= 1; // <-- (E2) YOUR CODE HERE
+                    // energy *= 1; // <-- (E2) YOUR CODE HERE
+                    energy *= renderSettings.DiffuseProportion; // remove specular scatter from ray energy
+                } else {
+                    // Debug.Log("Over the hit limit: " + n_hit);
                 }
                 // Calculate absorption
-                energy *= 1;  // <-- (E2) YOUR CODE HERE
+                // energy *= 1;  // <-- (E2) YOUR CODE HERE
+                energy *= (1 - renderSettings.Absorption); // remove absorbed ray energy from this hit
+
                 // === E3: Add the contribution of the ray ===
                 // Is there anything between the hit position and the listener
                 if (true /* <-- (E3) YOUR CODE HERE */)
