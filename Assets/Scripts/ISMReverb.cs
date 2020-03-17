@@ -185,7 +185,9 @@ public class ISMReverb : MonoBehaviour
         // Combine the ISM and raycast impulse responses
         for (var i = 0; i < ir.Length; ++i)
         {
-            ir[i] = ism.IR[i];  // <-- (E5) YOUR CODE HERE: add the contribution of the ray tracer here
+            // ir[i] = ism.IR[i];  // <-- (E5) YOUR CODE HERE: add the contribution of the ray tracer here
+            // Note, ir_raycast at i is already averaged over the number of coinciding arrivals
+            ir[i] = ism.IR[i] + Mathf.Sqrt(ir_raycast[i]) * ir_noise[i];
         }
         // Check if it is time to update the impulse response
         if (AudioSettings.dspTime > nextSync)
