@@ -225,8 +225,10 @@ public class ISMReverb : MonoBehaviour
         {
             return;
         }
+
         // A mask for game objects using ISMCollider
         int ism_colliders_only = LayerMask.GetMask("ISM colliders");
+
         // Start the raytracer loop
         double stopTime = AudioSettings.dspTime + timeLimit;
         Vector3 listenerPosition = renderSettings.ListenerPosition;
@@ -234,8 +236,9 @@ public class ISMReverb : MonoBehaviour
         {
             // === E1: Cast a new ray towards random direction ===
             // (E1) YOUR CODE HERE: initialize ray starting position and direction
-            //Vector3 pos = ...
-            //Vector3 dir = ...
+            Vector3 pos = SourcePosition;
+            Vector3 dir = Random.onUnitSphere;
+
             // Intensity of the current ray
             float energy = 1.0f;
             // Current and remaining ray path lengths
@@ -245,15 +248,21 @@ public class ISMReverb : MonoBehaviour
             int n_hit = 0;
             // Result of the raycast
             RaycastHit hit;
-            // Cast a ray
-            while (AudioSettings.dspTime < stopTime
-                   && true /* <-- (E1) YOUR CODE HERE */)
+            
+            // Cast a ray.
+            // while we still have time to calculate more rays,
+            // && there is a collision within the remaining path length...
+            while (AudioSettings.dspTime < stopTime                      // TODO: why check this again? why use 'while', not 'if'?
+                //    && true /* <-- (E1) YOUR CODE HERE */)
+                && Physics.Raycast(pos, dir, out hit, remainingPathLength, ism_colliders_only))
             {
                 // (E1) YOUR CODE HERE: Gather hit info
-                //pos = ...
-                //Vector3 surfaceNormal = ...
-                //pathLength += ...
-                //remainingPathLength -= ...
+                pos                   = hit.point;
+                Vector3 surfaceNormal = hit.normal;
+                pathLength           += hit.distance;
+                remainingPathLength  -= hit.distance;
+
+                rayCount++;
 
                 // === E2: Calculate current energy ===
                 // If the ISM reflections are still considered, take only the 
