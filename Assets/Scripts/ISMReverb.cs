@@ -338,6 +338,10 @@ public class ISMReverb : MonoBehaviour
                 // === E4: select new direction of propagation ===
                 // (E4) YOUR CODE HERE
                 //dir = ...
+                dir = Random.onUnitSphere;
+                dir.y = Mathf.Abs(dir.y); // confine to upper hemisphere
+                // rotate upward direction to reflection surface normal
+                dir = Quaternion.FromToRotation(Vector3.up, surfaceNormal) * dir;
             }
         }
     }
