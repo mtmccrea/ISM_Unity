@@ -7,6 +7,7 @@ using UnityEngine.Audio;
 /// <summary>
 /// A container for the ISM render data shared between different sources
 /// </summary>
+[RequireComponent(typeof(ISMAirAbsorption))]
 public class ISMRenderSettings : MonoBehaviour {
 
     /// <summary>
@@ -20,9 +21,32 @@ public class ISMRenderSettings : MonoBehaviour {
     Vector3 oldListenerPos;
 
     /// <summary>
+    /// An interface to the air absorption library
+    /// </summary>
+    public ISMAirAbsorption airAbsorption;
+
+    /// <summary>
     /// Mixer containing the convolution reverb mixer groups
     /// </summary>
     public AudioMixer mixer;
+
+    /// <summary>
+    /// Do we use Image Source Method or not
+    /// </summary>
+    [SerializeField]
+    private bool useISM = true;
+
+    /// <summary>
+    /// Do we use raycasting or not
+    /// </summary>
+    [SerializeField]
+    private bool useRaycast = true;
+
+    /// <summary>
+    /// Should we apply air absorption to the impulse response or not
+    /// </summary>
+    [SerializeField]
+    private bool applyAirAbsorption = true;
 
     /// <summary>
     /// The absorption of the walls in the room being simulated
@@ -47,6 +71,17 @@ public class ISMRenderSettings : MonoBehaviour {
     /// </summary>
     [SerializeField]
     private float irLength = 1.0f;
+
+    /// <summary>
+    /// The desired time-per-frame in seconds
+    /// </summary>
+    [SerializeField]
+    private double targetTime = 0.016;
+
+    /// <summary>
+    /// The amount of time that has been reserved for the raycaster
+    /// </summary>
+    double raycastTimeBudget;
 
     struct MirroringPlaneArray
     {
@@ -177,6 +212,71 @@ public class ISMRenderSettings : MonoBehaviour {
 
 
     /// <summary>
+    /// The total time one raycaster is allowed to spend in one frame
+    /// </summary>
+    public double RaycastTimeBudget
+    {
+        get { return raycastTimeBudget; }
+    }
+
+
+    /// <summary>
+    /// Indicates whether Image Source Method should be used in the simulation 
+    /// or not
+    /// </summary>
+    public bool UseISM
+    {
+        get { return useISM; }
+
+        set
+        {
+            if (useISM != value)
+            {
+                simulationValueChanged = true;
+            }
+            useISM = value;
+        }
+    }
+
+
+    /// <summary>
+    /// Indicates whether raycasting should be used in the simulation or not
+    /// </summary>
+    public bool UseRaycast
+    {
+        get { return useRaycast; }
+
+        set
+        {
+            if (useRaycast != value)
+            {
+                simulationValueChanged = true;
+            }
+            useRaycast = value;
+        }
+    }
+
+
+    /// <summary>
+    /// Indicates whether air absorption should be used in the simulation or
+    /// not
+    /// </summary>
+    public bool ApplyAirAbsorption
+    {
+        get { return applyAirAbsorption; }
+
+        set
+        {
+            if (applyAirAbsorption != value)
+            {
+                simulationValueChanged = true;
+            }
+            applyAirAbsorption = value;
+        }
+    }
+
+
+    /// <summary>
     /// The amount of absorption of the walls
     /// </summary>
     public float Absorption
@@ -245,6 +345,23 @@ public class ISMRenderSettings : MonoBehaviour {
     }
 
 
+    /// <summary>
+    /// The desired frame rate for the simulation
+    /// </summary>
+    public double TargetFPS
+    {
+        get
+        {
+            return 1.0 / targetTime;
+        }
+
+        set
+        {
+            targetTime = 1.0 / value;
+        }
+    }
+
+
     public Vector3[] PlaneCenters
     {
         get { return mirroringPlaneArray.pos; }
@@ -266,6 +383,8 @@ public class ISMRenderSettings : MonoBehaviour {
         // set old position different from the current listener position
         oldListenerPos = listener.transform.position + Vector3.up;
         mirroringPlaneArray.Construct(FindObjectsOfType<ISMCollider>());
+        // set initial time budget for raycasting
+        raycastTimeBudget = targetTime / nReverbs;
     }
 
 
@@ -289,6 +408,9 @@ public class ISMRenderSettings : MonoBehaviour {
             updateRequested = true;
             simulationValueChanged = false;
         }
+        // Update raycast time budget
+        double t = Time.deltaTime - (raycastTimeBudget * nReverbs);
+        raycastTimeBudget = (double)Mathf.Max((float)(targetTime - t) / nReverbs, 0.001f);
     }
 
 

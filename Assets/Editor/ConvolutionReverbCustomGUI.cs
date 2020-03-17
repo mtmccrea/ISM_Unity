@@ -2,10 +2,13 @@ using UnityEditor;
 using UnityEngine;
 using System.Runtime.InteropServices;
 
+
+/// <summary>
+/// A custom interface for Convolution Reverb audio plugin
+/// </summary>
 public class ConvolutionReverbCustomGUI : IAudioEffectPluginGUI
 {
-    // [DllImport("AudioPluginVADemo")]
-    [DllImport("libAudioPluginVADemo.dylib")]
+    [DllImport("AudioPluginISMDemo")]
     private static extern System.IntPtr ConvolutionReverb_GetSampleName(int index);
 
     public override string Name
@@ -36,12 +39,12 @@ public class ConvolutionReverbCustomGUI : IAudioEffectPluginGUI
         AudioCurveRendering.DrawSymmetricFilledCurve(
             r,
             delegate(float x, out Color color)
-            {
-                float f = Mathf.Clamp(x * xscale, 0.0f, xscale);
-                int i = (int)Mathf.Floor(f);
-                color = new Color(col.r, col.g, col.b, col.a * wetLevel);
-                return (curve[i] + (curve[i + 1] - curve[i]) * (f - i)) * yscale;
-            }
+        {
+            float f = Mathf.Clamp(x * xscale, 0.0f, xscale);
+            int i = (int)Mathf.Floor(f);
+            color = new Color(col.r, col.g, col.b, col.a * wetLevel);
+            return (curve[i] + (curve[i + 1] - curve[i]) * (f - i)) * yscale;
+        }
             );
     }
 
@@ -68,7 +71,7 @@ public class ConvolutionReverbCustomGUI : IAudioEffectPluginGUI
             r2.y += r2.height;
             DrawCurve(r2, imp2, 1.0f, m_Impulse2Color, 150, wet, gain);
 
-            string name = "Impulse (slot" + (int)useSample + "): "+ Marshal.PtrToStringAnsi(ConvolutionReverb_GetSampleName((int)useSample));
+            string name = "Impulse: " + Marshal.PtrToStringAnsi(ConvolutionReverb_GetSampleName((int)useSample));
             GUIHelpers.DrawText(r2.x + 5, r2.y - 5, r2.width, name, Color.white);
         }
         AudioCurveRendering.EndCurveFrame();

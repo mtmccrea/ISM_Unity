@@ -8,19 +8,20 @@ Prefab:
     m_TransformParent: {fileID: 0}
     m_Modifications: []
     m_RemovedComponents: []
-  m_SourcePrefab: {fileID: 0}
+  m_ParentPrefab: {fileID: 0}
   m_RootGameObject: {fileID: 1989024429932192}
-  m_IsPrefabAsset: 1
+  m_IsPrefabParent: 1
 --- !u!1 &1989024429932192
 GameObject:
   m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
-  serializedVersion: 6
+  serializedVersion: 5
   m_Component:
   - component: {fileID: 4888986587306016}
   - component: {fileID: 114180014237899126}
   - component: {fileID: 114636788534264182}
+  - component: {fileID: 114611667227863168}
   - component: {fileID: 114367305708587448}
   m_Layer: 0
   m_Name: ISM Data
@@ -32,7 +33,7 @@ GameObject:
 --- !u!4 &4888986587306016
 Transform:
   m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1989024429932192}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -45,7 +46,7 @@ Transform:
 --- !u!114 &114180014237899126
 MonoBehaviour:
   m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1989024429932192}
   m_Enabled: 1
@@ -53,16 +54,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad1297c25b5bbd640ac74a210bf73e0d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  room: {fileID: 0}
+  plane_centers: []
+  plane_normals: []
   listener: {fileID: 0}
-  mixer: {fileID: 0}
+  airAbsorption: {fileID: 114611667227863168}
+  masterMixer: {fileID: 24100000, guid: 212df8c23b907e4459456b406a9342e7, type: 2}
+  useISM: 1
+  useRaycast: 1
+  applyAirAbsorption: 1
   absorption: 0.1
   diffuseProportion: 0.2
   nISMReflections: 1
   irLength: 0.3
+  targetTime: 0.016
 --- !u!114 &114367305708587448
 MonoBehaviour:
   m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1989024429932192}
   m_Enabled: 1
@@ -72,10 +81,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   audioSourcesToSync: []
   syncedStartTime: 0.1
+--- !u!114 &114611667227863168
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1989024429932192}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2643579fcbbcc2c408e97d3bc802f14e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &114636788534264182
 MonoBehaviour:
   m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1989024429932192}
   m_Enabled: 1

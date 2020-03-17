@@ -12,93 +12,6 @@ using UnityEngine.Audio;
 [RequireComponent(typeof(AudioSource))]
 public class ISMReverb : MonoBehaviour
 {
-    // === STRUCTS ===
-
-    /// <summary>
-    /// A container struct for image source data
-    /// </summary>
-    public struct ImageSource
-    {
-        /// <summary>
-        /// Normal of the mirroring plane of the image source
-        /// </summary>
-        public Vector3 n;
-        
-        /// <summary>
-        /// A constant value from the plane equation Ax + By + Cz + D = 0. Can
-        /// also be thought as a dot product between the normal and the known 
-        /// point on the plane, i.e. Vector3.Dot(p0, n)
-        /// </summary>
-        public float D;
-
-        /// <summary>
-        /// Position of the image source
-        /// </summary>
-        public Vector3 pos;
-
-        /// <summary>
-        /// Index of the parent image source
-        /// </summary>
-        public int i_parent;
-
-        /// <summary>
-        /// A main constructor, use this for image sources.
-        /// </summary>
-        /// <param name="pos_in">Position of the image source</param>
-        /// <param name="p0_in">A point in the mirroring plane</param>
-        /// <param name="n_in">Normal of the mirroring plane</param>
-        /// <param name="i_parent_in">Index of the parent (-1 if root)</param>
-        public ImageSource(Vector3 pos_in, Vector3 p0_in, Vector3 n_in, int i_parent_in = -1)
-        {
-            pos = pos_in;
-            D = Vector3.Dot(p0_in, n_in);
-            n = n_in;
-            i_parent = i_parent_in;
-        }
-
-
-        /// <summary>
-        /// A constructor for the real source.
-        /// </summary>
-        /// <param name="pos_in">Position of the real source</param>
-        public ImageSource(Vector3 pos_in)
-        {
-            pos = pos_in;
-            D = 0;
-            n = Vector3.zero;
-            i_parent = -1;
-        }
-    }
-
-
-    /// <summary>
-    /// A container struct for ray paths
-    /// </summary>
-    public struct RaycastHitPath
-    {
-        /// <summary>
-        /// List of ray wall hit points in the path
-        /// </summary>
-        public List<Vector3> points;
-
-        /// <summary>
-        /// Total path length
-        /// </summary>
-        public float totalPathLength;
-
-
-        /// <summary>
-        /// A constructor.
-        /// </summary>
-        /// <param name="pathLength">Length of the path</param>
-        public RaycastHitPath(float pathLength)
-        {
-            points = new List<Vector3>();
-            totalPathLength = pathLength;
-        }
-    }
-
-
     // === PUBLIC ATTRIBUTES ===
 
     /// <summary>
@@ -113,14 +26,9 @@ public class ISMReverb : MonoBehaviour
     public double updateInterval = 1.0;
 
     /// <summary>
-    /// Current image sources
+    /// Should we accumulate the raycast result over time
     /// </summary>
-    public List<ImageSource> imageSources = new List<ImageSource>();
-
-    /// <summary>
-    /// Valid ray hit paths between the source and the listener
-    /// </summary>
-    public List<RaycastHitPath> hitPaths = new List<RaycastHitPath>();
+    public bool accumulateResults = true;
 
 
     // === PUBLIC PROPERTIES ===
@@ -133,7 +41,6 @@ public class ISMReverb : MonoBehaviour
         get { return source.transform.position; }
         set { source.transform.position = value; }
     }
-
 
 
     /// <summary>
@@ -152,6 +59,21 @@ public class ISMReverb : MonoBehaviour
     {
         get { return ir; }
     }
+    
+
+    /// <summary>
+    /// Access to the global render settings
+    /// </summary>
+    public ISMRenderSettings RenderSettings
+    {
+        get { return renderSettings; }
+    }
+
+
+    /// <summary>
+    /// An ISM renderer of this reverb
+    /// </summary>
+    public ISMEngine.ISMEngine ism;
 
 
     // === PRIVATE ATTRIBUTES ===
@@ -160,6 +82,21 @@ public class ISMReverb : MonoBehaviour
     /// The full impulse response
     /// </summary>
     float[] ir;
+
+    /// <summary>
+    /// Impulse response created by raycasting
+    /// </summary>
+    float[] ir_raycast;
+
+    /// <summary>
+    /// The number of rays on a particular sample
+    /// </summary>
+    uint[] raycast_counts;
+
+    /// <summary>
+    /// A piece of white noise to be modulated with the raycast result
+    /// </summary>
+    float[] ir_noise;
 
     /// <summary>
     /// The source on which the reverb is applied
@@ -176,6 +113,7 @@ public class ISMReverb : MonoBehaviour
     /// </summary>
     ISMRenderSettings renderSettings;
 
+
     /// <summary>
     /// Index of the impulse response slot in the convolution reverb plugin
     /// </summary>
@@ -185,6 +123,7 @@ public class ISMReverb : MonoBehaviour
     /// The time when the impulse response is synced next time
     /// </summary>
     double nextSync;
+
 
     // === METHODS ===
     
@@ -202,6 +141,13 @@ public class ISMReverb : MonoBehaviour
             renderSettings.IRLength * AudioSettings.outputSampleRate);
         ir = new float[irNumSamples];
         ir[0] = 1.0f;
+        ir_raycast = new float[irNumSamples];
+        raycast_counts = new uint[irNumSamples];
+        ir_noise = new float[irNumSamples];
+        for (int i = 0; i < ir_noise.Length; ++i)
+        {
+            ir_noise[i] = Random.Range(-1.0f, 1.0f);
+        }
         // Set up Convolution Reverb
         float fParamIdx;
         renderSettings.mixer.GetFloat(mixerGroupName, out fParamIdx);
@@ -210,6 +156,7 @@ public class ISMReverb : MonoBehaviour
         nextSync = AudioSettings.dspTime;
         // Select random vectors as placeholders for the old positions
         oldSourcePosition = Random.insideUnitSphere * 1e3f;
+        ism = new ISMEngine.ISMEngine(renderSettings.IRLength);
     }
 
 
@@ -221,7 +168,24 @@ public class ISMReverb : MonoBehaviour
         if (LocationsHaveChanged() || renderSettings.IRUpdateRequested)
         {
             // Calculate ISM impulse response
-            ISMUpdate();
+            ism.Update(SourcePosition, 
+                       renderSettings.ListenerPosition,
+                       renderSettings.PlaneCenters,
+                       renderSettings.PlaneNormals,
+                       renderSettings.NumberOfISMReflections,
+                       renderSettings.MaximumRayLength,
+                       ISMRenderSettings.speedOfSound,
+                       renderSettings.Absorption,
+                       renderSettings.DiffuseProportion,
+                       renderSettings.UseISM,
+                       SourceHasMoved() || renderSettings.IRUpdateRequested);
+        }
+        // Update raycast impulse response
+        RaycastUpdate(renderSettings.RaycastTimeBudget);
+        // Combine the ISM and raycast impulse responses
+        for (var i = 0; i < ir.Length; ++i)
+        {
+            ir[i] = ism.IR[i];  // <-- (E5) YOUR CODE HERE: add the contribution of the ray tracer here
         }
         // Check if it is time to update the impulse response
         if (AudioSettings.dspTime > nextSync)
@@ -235,155 +199,89 @@ public class ISMReverb : MonoBehaviour
     }
 
 
+    
+
+
     /// <summary>
-    /// Apply Image Source Method (ISM) to calculate specular reflections
+    /// Cast rays from source to the listener in order to simulate diffuse 
+    /// field
     /// </summary>
-    void ISMUpdate()
+    /// <param name="timeLimit">
+    /// The amount of time allocated for raycasting in this frame
+    /// </param>
+    void RaycastUpdate(double timeLimit)
     {
-        // Clear old data
-        hitPaths.Clear();
-        System.Array.Clear(ir, 0, ir.Length);
-        // Check if the image source positions must be updated
-        if (SourceHasMoved() || renderSettings.IRUpdateRequested)
+        // Clear the raycast result if changes have made (or accumulation is 
+        // not used)
+        if (!accumulateResults
+            || LocationsHaveChanged()
+            || renderSettings.IRUpdateRequested)
         {
-            // Clear old image sources
-            imageSources.Clear();
-            // === E1: Add direct sound ===
-            // (E1) YOUR CODE HERE
-            // Add the original source to the image sources list
-            imageSources.Add(new ImageSource(SourcePosition));
-
-            // For each order of reflection
-            int i_begin;
-            int i_end = 0;
-
-            for (var i_refl = 0; i_refl < renderSettings.NumberOfISMReflections; ++i_refl)
-            {
-                // === E4: Higher order reflections ===
-                // (E4) YOUR CODE HERE: Update parent interval
-                i_begin = i_end;
-                i_end = imageSources.Count;
-                // For each parent to reflect
-                for (var i_parent = i_begin; i_parent < i_end; ++i_parent) // <-- (E4) YOUR CODE HERE
-                {
-                    // === E2: Calculate image source positions ===
-                    // Parent source on this iteration
-                    ImageSource parentSource = imageSources[i_parent];
-                    // For each mirroring plane
-                    for (var i_child = 0; 
-                         i_child < renderSettings.PlaneCenters.Length; 
-                         ++i_child)
-                    {
-                        // Get the current mirroring plane
-                        Vector3 p_plane = renderSettings.PlaneCenters[i_child];
-                        Vector3 n_plane = renderSettings.PlaneNormals[i_child];
-                        // (E2) YOUR CODE HERE: calculate the distance from the plane to the source
-                        float sourcePlaneDistance = Vector3.Dot(parentSource.pos-p_plane,n_plane);
-
-                        // Is the parent source in front of the plane?
-                        if (sourcePlaneDistance > 0.0) 
-                        {
-                            // Parent source is in front of the plane, calculate mirrored position
-                            Vector3 N = transform.TransformDirection(n_plane);
-                            Vector3 mirroredPosition = parentSource.pos - 2 * n_plane * sourcePlaneDistance;
-                            // (E2) YOUR CODE HERE
-                            // Add the image source
-                            imageSources.Add(new ImageSource(mirroredPosition, p_plane, n_plane, i_parent));
-                        }
-                    }
-                }
-            }
+            System.Array.Clear(ir_raycast, 0, ir_raycast.Length);
+            System.Array.Clear(raycast_counts, 0, raycast_counts.Length);
         }
-
-        // === E3: Cast rays ===
+        // Skip if not in use
+        if (!renderSettings.UseRaycast)
+        {
+            return;
+        }
         // A mask for game objects using ISMCollider
         int ism_colliders_only = LayerMask.GetMask("ISM colliders");
-        // For each image source
-        for (var i = 0; i < imageSources.Count; ++i)
+        // Start the raytracer loop
+        double stopTime = AudioSettings.dspTime + timeLimit;
+        Vector3 listenerPosition = renderSettings.ListenerPosition;
+        while (AudioSettings.dspTime < stopTime)
         {
-            // Calculate path length
-            float pathLength = Vector3.Distance(imageSources[i].pos, ListenerPosition);
-                        
-            // Check that the path can contribute to the impulse response
-            if (pathLength < renderSettings.MaximumRayLength)
+            // === E1: Cast a new ray towards random direction ===
+            // (E1) YOUR CODE HERE: initialize ray starting position and direction
+            //Vector3 pos = ...
+            //Vector3 dir = ...
+            // Intensity of the current ray
+            float energy = 1.0f;
+            // Current and remaining ray path lengths
+            float pathLength = 0.0f;
+            float remainingPathLength = renderSettings.MaximumRayLength;
+            // The number of times that the ray has hit a surface
+            int n_hit = 0;
+            // Result of the raycast
+            RaycastHit hit;
+            // Cast a ray
+            while (AudioSettings.dspTime < stopTime
+                   && true /* <-- (E1) YOUR CODE HERE */)
             {
-                // Create a container for this path
-                RaycastHitPath path = new RaycastHitPath(pathLength);
-                // (E3) YOUR CODE HERE: Set the listener as the starting point for
-                // the ray
-                Vector3 origin = ListenerPosition;
-                Vector3 originNormal = imageSources[i].pos - origin;
-                int i_next = i;
-                bool isValidPath = true;
-                
-                // Loop until we have either processed the original source or 
-                // found the path invalid
-                while (i_next != -1 && isValidPath)
+                // (E1) YOUR CODE HERE: Gather hit info
+                //pos = ...
+                //Vector3 surfaceNormal = ...
+                //pathLength += ...
+                //remainingPathLength -= ...
+
+                // === E2: Calculate current energy ===
+                // If the ISM reflections are still considered, take only the 
+                // diffuse part
+                if (n_hit++ < renderSettings.NumberOfISMReflections)
                 {
-                    // Get the current source
-                    ImageSource imageSource = imageSources[i_next];
-                    // (E3) YOUR CODE HERE: Determine ray direction and length
-                    Vector3 dir = originNormal;
-                    float max_length = Vector3.Distance(origin, imageSource.pos);
-                    // Trace the ray
-                    RaycastHit hit;
-                    // First, check that the outgoing ray is reflected from the wall
-                    if (!Physics.Raycast(origin, dir, out hit, max_length, ism_colliders_only))
+                    energy *= 1; // <-- (E2) YOUR CODE HERE
+                }
+                // Calculate absorption
+                energy *= 1;  // <-- (E2) YOUR CODE HERE
+                // === E3: Add the contribution of the ray ===
+                // Is there anything between the hit position and the listener
+                if (true /* <-- (E3) YOUR CODE HERE */)
+                {
+                    // (E3) YOUR CODE HERE: Calculate the index of the ray in the impulse response
+                    //float ray_length = ...
+                    int i_ir = 0;
+                    if (i_ir < ir.Length)
                     {
-                        // The ray is sent in the wall, so the path is invalid
-                        isValidPath = false;
-                    }
-                    else if (imageSource.i_parent == -1)
-                    {
-                        // (E3) YOUR CODE HERE 
-                        // Handle the real source: check that the path is not obstructed                        
-                        if (Mathf.Abs(max_length - hit.distance) < 0.2) {
-                            isValidPath = true;
-                        } else {
-                            isValidPath = false;
-                        }
-                    }
-                    else
-                    {
-                        // Handle image sources
-                        // (E3) YOUR CODE HERE: check that the ray hits a wall on mirroring plane
-                        isValidPath = ISMMath.PlaneEQ(hit, imageSource);
-                    }
-                    // Add the traced path if it is still valid
-                    if (isValidPath)
-                    {
-                        // Path is valid, add the hit point to the ray path
-                        // (E3) YOUR CODE HERE
-                        path.points.Add(hit.point);
-                        // Prepare to send the ray towards the next image source
-                        i_next = imageSource.i_parent;
-                        origin = hit.point;
-                        if (i_next != -1) originNormal = imageSources[i_next].pos-origin;
+                        // (E3) YOUR CODE HERE: Add the contribution
+                        //ir_raycast[i_ir] = ...
+                        // Increment the corresponding ray counter
+                        ++raycast_counts[i_ir];
                     }
                 }
-                // Add the traced path if it is still valid
-                if (isValidPath)
-                {
-                    // (E3) YOUR CODE HERE
-                    hitPaths.Add(path);
-                }
-            }
-        }
-        // === E5: create image source impulse response ===
-        foreach (var path in hitPaths)
-        {
-            // Calculate the sample that the ray path contributes to
-            int i_path = Mathf.RoundToInt( // <-- (E5) YOUR CODE HERE
-                AudioSettings.outputSampleRate * path.totalPathLength / ISMRenderSettings.speedOfSound
-                ); 
-            if (i_path < ir.Length)
-            {
-                // (E5) YOUR CODE HERE: Determine the signal magnitude  w.r.t.
-                // the amount of wall hits in the path
-                ir[i_path] += Mathf.Pow(
-                    (1 - renderSettings.Absorption) * (1 - renderSettings.DiffuseProportion), 
-                    path.points.Count / 2
-                ) / (path.totalPathLength + float.Epsilon);
+                // === E4: select new direction of propagation ===
+                // (E4) YOUR CODE HERE
+                //dir = ...
             }
         }
     }

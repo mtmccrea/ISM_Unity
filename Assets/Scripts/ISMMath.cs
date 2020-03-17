@@ -26,7 +26,7 @@ public class ISMMath
     /// <param name="hit">Raycast hit information</param>
     /// <param name="im_src">An image source containing the mirroring plane information</param>
     /// <returns>True if the planes are equal, false otherwise.</returns>
-    public static bool PlaneEQ(RaycastHit hit, ISMReverb.ImageSource im_src)
+    public static bool PlaneEQ(RaycastHit hit, ISMEngine.ISMEngine.ImageSource im_src)
     {
         return ISMMath.DirectionEQ(hit.normal, im_src.n) && Mathf.Abs(Vector3.Dot(hit.point, im_src.n) - im_src.D) < Vector3.kEpsilon;
     }

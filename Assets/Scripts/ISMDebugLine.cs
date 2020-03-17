@@ -32,8 +32,8 @@ public class ISMDebugLine : MonoBehaviour
         line.positionCount = resolution;
         line.SetPositions(dbgLine);
     }
-	
-	
+
+
     /// <summary>
     /// Draw the given impulse response
     /// </summary>

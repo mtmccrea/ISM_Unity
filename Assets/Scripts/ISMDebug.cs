@@ -125,24 +125,30 @@ public class ISMDebug : MonoBehaviour
     {
         if (showImageSources)
         {
-            if (debugImageSources.Count != SourceToDebug.imageSources.Count)
+            if (debugImageSources.Count != SourceToDebug.ism.imageSources.Count)
             {
                 // Allocate / free resources
                 float dbg_obj_scale = 0.2f;
                 while (debugImageSources.Count 
-                       < SourceToDebug.imageSources.Count)
+                       < SourceToDebug.ism.imageSources.Count)
                 {
                     GameObject obj = 
                         GameObject.CreatePrimitive(PrimitiveType.Sphere);
                     obj.transform.localScale = new Vector3(dbg_obj_scale, 
                                                            dbg_obj_scale, 
                                                            dbg_obj_scale);
+                    // Get the Renderer component
+                    var objRenderer = obj.GetComponent<Renderer>();
+                    // Make it white
+                    objRenderer.material = new Material(Shader.Find("Unlit/Color"));
+                    objRenderer.material.color = Color.white;
+
                     debugImageSources.Add(obj);
                 }
-                if (debugImageSources.Count > SourceToDebug.imageSources.Count)
+                if (debugImageSources.Count > SourceToDebug.ism.imageSources.Count)
                 {
                     for (var i = debugImageSources.Count - 1; 
-                        i > SourceToDebug.imageSources.Count - 1; 
+                        i > SourceToDebug.ism.imageSources.Count - 1; 
                         --i)
                     {
                         Destroy(debugImageSources[i]);
@@ -151,10 +157,10 @@ public class ISMDebug : MonoBehaviour
                 }
             }
             // Assign new locations
-            for (var i = 0; i < SourceToDebug.imageSources.Count; ++i)
+            for (var i = 0; i < SourceToDebug.ism.imageSources.Count; ++i)
             {
                 debugImageSources[i].transform.position = 
-                    SourceToDebug.imageSources[i].pos;
+                    SourceToDebug.ism.imageSources[i].pos;
             }
         }
     }
@@ -169,7 +175,7 @@ public class ISMDebug : MonoBehaviour
         {
             Vector3 p_source = SourceToDebug.SourcePosition;
             Vector3 p_listener = renderSettings.ListenerPosition;
-            foreach (ISMReverb.RaycastHitPath path in SourceToDebug.hitPaths)
+            foreach (var path in SourceToDebug.ism.hitPaths)
             {
                 // Draw the first path
                 if (path.points.Count == 0)
@@ -195,7 +201,32 @@ public class ISMDebug : MonoBehaviour
     /// </summary>
     void DebugImpulseResponse()
     {
-        float[] IR = showImpulseResponse ? SourceToDebug.IR : null;
+        float[] IR = null;
+        if (testAirAbsorption)
+        {
+            // Test Air Absorption: Create one second of white noise decay
+            const float G = 1.0f;
+            IR = new float[AudioSettings.outputSampleRate];
+            for (var i = 0; i < IR.Length; ++i)
+            {
+                float amplitude = (1 - (i + 1.0f) / IR.Length);
+                IR[i] = G * amplitude * Random.Range(-1.0f, 1.0f);
+            }
+            if (renderSettings.ApplyAirAbsorption)
+            {
+                IR = renderSettings.airAbsorption.Apply(IR);
+            }
+            for (var i = 0; i < IR.Length; ++i)
+            {
+                IR[i] = Mathf.Abs(IR[i]);
+            }
+        }
+        else if (showImpulseResponse)
+        {
+            IR = renderSettings.ApplyAirAbsorption ?
+                renderSettings.airAbsorption.Apply(SourceToDebug.IR) 
+                : SourceToDebug.IR;
+        }
         if (IR != null && debugLine != null)
         {
             debugLine.DrawIR(IR);

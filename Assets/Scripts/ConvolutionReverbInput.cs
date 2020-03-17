@@ -16,8 +16,7 @@ public class ConvolutionReverbInput
     /// <param name="samplerate">Sampling frequency of the data</param>
     /// <param name="name">Name of the sample</param>
     /// <returns></returns>
-    // [DllImport("AudioPluginVADemo")]
-    [DllImport("libAudioPluginVADemo.dylib")]
+    [DllImport("AudioPluginISMDemo")]
     private static extern bool ConvolutionReverb_UploadSample(
         int index, 
         float[] data, 

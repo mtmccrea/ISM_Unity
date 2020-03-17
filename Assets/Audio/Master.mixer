@@ -4,8 +4,7 @@
 AudioMixerController:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
   m_Name: Master
   m_OutputGroup: {fileID: 0}
   m_MasterGroup: {fileID: 24300002}
@@ -29,8 +28,7 @@ AudioMixerController:
 AudioMixerGroupController:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
   m_Name: Master
   m_AudioMixer: {fileID: 24100000}
   m_GroupID: 720302dc75f765446bcf735344facbe3
@@ -38,7 +36,6 @@ AudioMixerGroupController:
   - {fileID: 243996804567206178}
   m_Volume: 8d08fc5b0d34e12478a498ca1d640383
   m_Pitch: a584847dab027114fa0a077d192572a8
-  m_Send: 00000000000000000000000000000000
   m_Effects:
   - {fileID: 24400004}
   m_UserColorIndex: 0
@@ -49,8 +46,7 @@ AudioMixerGroupController:
 AudioMixerEffectController:
   m_ObjectHideFlags: 3
   m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
   m_Name: 
   m_EffectID: 5b3cf83cce46f1847ab310ef1914d02c
   m_EffectName: Attenuation
@@ -63,14 +59,12 @@ AudioMixerEffectController:
 AudioMixerSnapshotController:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
   m_Name: Snapshot
   m_AudioMixer: {fileID: 24100000}
   m_SnapshotID: d2c278e2161d1904da7f2e5265bb0c36
   m_FloatValues:
     356a2910a3ea9c0469a06aaa221c777d: 1000
-    abda56505b29b7743a88627e48b5a932: 42
     b7f0eb700681e5f40851338c4d8a01e8: 20
     3ff79380aa74c41439a30ac7116bae8a: 0
     04f52d90012541f4886fd469811f7787: 5
@@ -88,11 +82,10 @@ AudioMixerSnapshotController:
     8c771cf365a84424c90f50c33bd81ea2: 0
     5129373465b817142a795ca10fd8a4b2: 4
     c07074644b351684ca71d8827385865b: 3
-    68b38f84cfd574e4197f7cb724eda088: 0.5
+    68b38f84cfd574e4197f7cb724eda088: 0
     2c22e56526e168f4584e166cb5f2a6ee: 5
     500f4965d1f7b7c4bb2b93f5bd46e1d1: 0
     3d094b65ddd5e5c47a1fd77f6f1175f9: 20
-    0e22cc85df08ab247a7d0b412aa552d6: 100
     24f804063873aaa409426c77d6a524bb: 0
     a8c97f86ee24ea3449b72d4ae318f929: 5
     2a994996f170a3f4eaab0a4656d4fd4f: 0
@@ -101,10 +94,8 @@ AudioMixerSnapshotController:
     b5e0c7e6c58c8904a929e18845ad983f: -80
     0ca25107310c5ee4ab9053db56dc6f08: 5
     92f640476bd16644c836bba100e74906: 1
-    4a21515802f421c459e5f59c9eb4c2a5: 841
     e829b0981a20cb74b86f7bd0dc6b33fd: 0
     b72983b9b34e4bd44b2fd5bf27fed8c4: 20
-    080733c970ceed94eb8f8cb8de5f1667: 88
     3eca884a11a458b4db3bd082a25eb6bc: 2
     d5736e8a62c623c498268b8098a72ae4: 5
     ae98b09a7e26cc347a6725186be55df4: 3
@@ -114,7 +105,6 @@ AudioMixerSnapshotController:
     2442ac2ba6cd5664a8589b7912a66ac4: 2
     8d08fc5b0d34e12478a498ca1d640383: 0
     1c2c123c1cd41a64e91e6e484995ea3c: 0
-    27eab36c671e0fc40b3ae370ac9a3e87: 0
     c27f466c6d75a7a4c951269d0cf15d87: 2
     e258476c6e0a28c40ad3a336205797f4: 20
     5bb52cdc640e5b04594a44e562cf32de: -6
@@ -122,7 +112,6 @@ AudioMixerSnapshotController:
     fe6403ec65e6b27419e2709792603026: 2
     c29a778dd72b01943a2c4a7dd12b92ae: 0
     7b4098cd187dc3845a2d0d5fbcf93dab: -10
-    ca5821fd1bc810d4787751d919dceec2: 100
     6d7af0de97d717347a3ac6584eb46d1a: 5
     6bd8e50ff6cf3c24388bd317e90c2924: 20
     f570ac3f01f031d4ca2ac6b7398b11bc: 200
@@ -131,15 +120,13 @@ AudioMixerSnapshotController:
 AudioMixerGroupController:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
   m_Name: Convolution Reverb 1
   m_AudioMixer: {fileID: 24100000}
   m_GroupID: 5edeebc3d98f96c48b6d11090f3d8893
   m_Children: []
   m_Volume: 3ff79380aa74c41439a30ac7116bae8a
   m_Pitch: 43524f8db0211da4b8b745a58117d729
-  m_Send: 00000000000000000000000000000000
   m_Effects:
   - {fileID: 244575654360822610}
   - {fileID: 244423545123862900}
@@ -151,8 +138,7 @@ AudioMixerGroupController:
 AudioMixerEffectController:
   m_ObjectHideFlags: 3
   m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
   m_Name: 
   m_EffectID: d37cdbca2dd58ef48ba84501a2b25d75
   m_EffectName: ConvolutionReverb
@@ -187,8 +173,7 @@ AudioMixerEffectController:
 AudioMixerEffectController:
   m_ObjectHideFlags: 3
   m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
   m_Name: 
   m_EffectID: 1a1f67164f55cf34985d6036bc5db677
   m_EffectName: Attenuation
@@ -201,8 +186,7 @@ AudioMixerEffectController:
 AudioMixerEffectController:
   m_ObjectHideFlags: 3
   m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
   m_Name: 
   m_EffectID: ec5cc6b5eb7a1f64297d816fa5e07d44
   m_EffectName: OculusSpatializerReflection
