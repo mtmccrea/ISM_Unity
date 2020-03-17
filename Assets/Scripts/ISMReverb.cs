@@ -279,18 +279,61 @@ public class ISMReverb : MonoBehaviour
 
                 // === E3: Add the contribution of the ray ===
                 // Is there anything between the hit position and the listener
-                if (true /* <-- (E3) YOUR CODE HERE */)
+                
+                // Raycast toward the listener
+                // TODO: mike added all this hit stuff... is it necessary? 
+                //       (why wasn't this provided as "skeleton" code?)
+                RaycastHit listenerHit;
+                Vector3 hitToListenerDir = pos - listenerPosition;
+                float hitToListenerDist  = hitToListenerDir.magnitude;
+                
+                // if (true /* <-- (E3) YOUR CODE HERE */)
+                // TODO: make sure there isn't a collider on the listener object, 
+                // otherwise this may return a "hit" on the listener
+                // Alternatively, check also the hit distance compared to hitToListenerDist
+                if (!Physics.Raycast(pos, hitToListenerDir, out listenerHit, hitToListenerDist))
                 {
                     // (E3) YOUR CODE HERE: Calculate the index of the ray in the impulse response
+                    // (E3) YOUR CODE HERE: Calculate the *sample* index of the ray in the impulse response
                     //float ray_length = ...
-                    int i_ir = 0;
-                    if (i_ir < ir.Length)
+                    float ray_length = hit.distance + hitToListenerDist;
+
+                    // int i_ir = 0;
+                    int i_ir = Mathf.RoundToInt( // where this path lands in the IR (sample index)
+                            AudioSettings.outputSampleRate * ray_length / ISMRenderSettings.speedOfSound
+                    );
+
+                    if (i_ir < ir.Length) // if the path's sample index is within the max IR length
                     {
                         // (E3) YOUR CODE HERE: Add the contribution
                         //ir_raycast[i_ir] = ...
+
+                        // Distribute diffuse reflection by 2*pi*r^2
+                        // Note: in the assignment is says r = distance from the wall hit point
+                        // to the listener. This seems not to account for the distance traveled 
+                        // from the source to the hit point.
+                        float e_contributed = energy / (2*Mathf.PI * Mathf.Pow(hit.distance, 2) + 1);
+
+                        // "It is important to note that multiple rays may hit the same sample. 
+                        // Therefore the amount of energy is averaged instead of accumulated over
+                        // all the other rays that have hit the very same sample before."
+                        
+                        // // TODO: this is  bit hacky... there's probably a cleaner way.
+                        // // Restore total energy at this sample, then increment.
+                        // ir_raycast[i_ir] *= raycast_counts[i_ir]++; 
+                        // ir_raycast[i_ir] += e_contributed;
+                        // // Average by the incremented raycast count.
+                        // ir_raycast[i_ir] /= raycast_counts[i_ir];
+
+                        // https://math.stackexchange.com/questions/22348/how-to-add-and-subtract-values-from-an-average
+                        // average = average + ((value - average) / nValues)
+                        ir_raycast[i_ir] += (e_contributed - ir_raycast[i_ir]) / ++raycast_counts[i_ir];
+
                         // Increment the corresponding ray counter
-                        ++raycast_counts[i_ir];
+                        // ++raycast_counts[i_ir];
                     }
+                } else {
+                    // Debug.Log("Occluded.");
                 }
                 // === E4: select new direction of propagation ===
                 // (E4) YOUR CODE HERE
