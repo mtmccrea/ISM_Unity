@@ -316,7 +316,7 @@ public class ISMReverb : MonoBehaviour
                         // Note: in the assignment is says r = distance from the wall hit point
                         // to the listener. This seems not to account for the distance traveled 
                         // from the source to the hit point.
-                        float e_contributed = energy / (2*Mathf.PI * Mathf.Pow(hit.distance, 2) + 1);
+                        float e_contributed = energy / (2*Mathf.PI * Mathf.Pow(hitToListenerDist, 2) + 1);
 
                         // "It is important to note that multiple rays may hit the same sample. 
                         // Therefore the amount of energy is averaged instead of accumulated over
