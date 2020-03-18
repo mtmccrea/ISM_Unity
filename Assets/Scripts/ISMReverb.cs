@@ -289,17 +289,32 @@ public class ISMReverb : MonoBehaviour
 
                 // === E2: Calculate current energy ===
                 // If the ISM reflections are still considered, take only the diffuse part
+
+                // (E4.2.1 - Material descriptions)
+                // get/store the wall's absorption/diffusion coeffs
+                float diffAbsorption;
+                float diffProportion;
+
+                if (hit.collider.GetComponent<AbsorptionMaterial>()) {
+                    diffAbsorption = hit.collider.GetComponent<AbsorptionMaterial>().diffAbsorption;
+                    diffProportion = hit.collider.GetComponent<AbsorptionMaterial>().diffuseProportion;
+                } 
+                else 
+                {
+                    // default absorption from ISMRenderSettings
+                    diffAbsorption = renderSettings.Absorption;
+                    diffProportion = renderSettings.DiffuseProportion;
+                }
+
                 if (n_hit++ < renderSettings.NumberOfISMReflections)
                 {
                     // energy *= 1; // <-- (E2) YOUR CODE HERE
-                    energy *= renderSettings.DiffuseProportion; // remove specular scatter from ray energy
+                    energy *= diffProportion; // remove specular scatter from ray energy
                 } 
-                // else {
-                    // Debug.Log("Over the hit limit: " + n_hit);
-                // }
+                
                 // Calculate absorption
                 // energy *= 1;  // <-- (E2) YOUR CODE HERE
-                energy *= (1 - renderSettings.Absorption); // remove absorbed ray energy from this hit
+                energy *= (1 - diffAbsorption); // remove absorbed ray energy from this hit
 
                 // === E3: Add the contribution of the ray ===
                 // Is there anything between the hit position and the listener
@@ -312,9 +327,6 @@ public class ISMReverb : MonoBehaviour
                 float hitToListenerDist  = hitToListenerDir.magnitude;
                 
                 // if (true /* <-- (E3) YOUR CODE HERE */)
-                // TODO: make sure there isn't a collider on the listener object, 
-                // otherwise this may return a "hit" on the listener
-                // Alternatively, check also the hit distance compared to hitToListenerDist
                 if (!Physics.Raycast(pos, hitToListenerDir, out listenerHit, hitToListenerDist))
                 {
                     // (E4.1)
@@ -329,7 +341,6 @@ public class ISMReverb : MonoBehaviour
                         drawCount++;
                     }
 
-                    // (E3) YOUR CODE HERE: Calculate the index of the ray in the impulse response
                     // (E3) YOUR CODE HERE: Calculate the *sample* index of the ray in the impulse response
                     //float ray_length = ...
                     float ray_length = hit.distance + hitToListenerDist;
@@ -353,7 +364,6 @@ public class ISMReverb : MonoBehaviour
                         // "It is important to note that multiple rays may hit the same sample. 
                         // Therefore the amount of energy is averaged instead of accumulated over
                         // all the other rays that have hit the very same sample before."
-
                         // https://math.stackexchange.com/questions/22348/how-to-add-and-subtract-values-from-an-average
                         // average = average + ((value - average) / nValues)
                         ir_raycast[i_ir] += (e_contributed - ir_raycast[i_ir]) / ++raycast_counts[i_ir];
@@ -361,10 +371,9 @@ public class ISMReverb : MonoBehaviour
                         // Increment the corresponding ray counter
                         // ++raycast_counts[i_ir];
                     }
-                } else {
+                } else { // Occluded
                     if (showTracedRays && drawCount <= nDebugTraces)
                     {
-                        // Debug.Log("Occluded.");
                         Debug.DrawLine(pos, listenerHit.point, Color.blue); // wall > occlusion
                         drawCount++;
                     }
