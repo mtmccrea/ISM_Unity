@@ -256,7 +256,7 @@ public class ISMReverb : MonoBehaviour
             // Cast a ray.
             // while we still have time to calculate more rays,
             // && there is a collision within the remaining path length...
-            while (AudioSettings.dspTime < stopTime                      // TODO: why check this again? why use 'while', not 'if'?
+            while (AudioSettings.dspTime < stopTime
                 //    && true /* <-- (E1) YOUR CODE HERE */)
                 && Physics.Raycast(pos, dir, out hit, remainingPathLength, ism_colliders_only))
             {
@@ -274,9 +274,10 @@ public class ISMReverb : MonoBehaviour
                 {
                     // energy *= 1; // <-- (E2) YOUR CODE HERE
                     energy *= renderSettings.DiffuseProportion; // remove specular scatter from ray energy
-                } else {
+                } 
+                // else {
                     // Debug.Log("Over the hit limit: " + n_hit);
-                }
+                // }
                 // Calculate absorption
                 // energy *= 1;  // <-- (E2) YOUR CODE HERE
                 energy *= (1 - renderSettings.Absorption); // remove absorbed ray energy from this hit
