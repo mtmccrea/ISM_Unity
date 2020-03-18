@@ -1,7 +1,7 @@
 # ISM_Unity
  An image-source reverberation model for Unity.
  
-This work is done for CS-E5530 - Virtual Acoustics, Aalto University, 07.01.2020-04.03.2020.
+This work is done for CS-E5530 - Virtual Acoustics, Aalto University, 07.01.2020-04.03.2020, by Michael McCrea, Leonardo Fierro, and course leaders.
 
 See various branches for features. The basic image-source model is found on `master`, while bells and whistles were added on `flipping-pressure` (flipping pressure contribution of reflections in the IR, absorption materials for different surfaces). Two parallel versions were implemented on `parellel-raycast` and `parellel-raycast-2` (experimental, actual performance gains require more work...). 
 
