@@ -121,7 +121,7 @@ public class ISMReverb : MonoBehaviour
     /// <summary>
     /// How man traced rays to show
     /// </summary>
-    public int nDebugTraces = 3;
+    public int nDebugTraces = 125;
 
 
     /// <summary>
@@ -256,7 +256,14 @@ public class ISMReverb : MonoBehaviour
             Vector3 dir = Random.onUnitSphere;
 
             // Intensity of the current ray
-            float energy = 1.0f;
+            // float energy = 1.0f;
+            
+            // (E4.2.1) Impose cardioid directivity on source
+            float projectionAngle = Vector3.Angle(dir, Vector3.right)*Mathf.PI/180.0f;
+            float cardioid = (1 + Mathf.Cos(projectionAngle)) / 2.0f;
+            float energy = cardioid; 
+            // Debug.Log(Vector3.Angle(dir, Vector3.forward)*Mathf.PI/180.0f);
+
             // Current and remaining ray path lengths
             float pathLength = 0.0f;
             float remainingPathLength = renderSettings.MaximumRayLength;
@@ -311,10 +318,14 @@ public class ISMReverb : MonoBehaviour
                 if (!Physics.Raycast(pos, hitToListenerDir, out listenerHit, hitToListenerDist))
                 {
                     // (E4.1)
-                    if (drawCount <= nDebugTraces && showTracedRays)
+                    if (drawCount <= nDebugTraces && showTracedRays && n_hit == 1)
                     {
-                        Debug.DrawLine(SourcePosition, pos, Color.red);     // source > wall
-                        Debug.DrawLine(listenerPosition, pos, Color.green); // diffuse > listener
+                        // Specular path from source: red, cardioid shades to black
+                        Color col = Color.HSVToRGB(0.0f, 1.0f, cardioid); 
+                        Debug.DrawLine(SourcePosition, pos, col);     // source > wall
+                        // Diffuse path to listener: green, cardioid shades to black
+                        col = Color.HSVToRGB(0.3f, 1.0f, cardioid);
+                        Debug.DrawLine(listenerPosition, pos, col); // diffuse > listener
                         drawCount++;
                     }
 
@@ -342,13 +353,6 @@ public class ISMReverb : MonoBehaviour
                         // "It is important to note that multiple rays may hit the same sample. 
                         // Therefore the amount of energy is averaged instead of accumulated over
                         // all the other rays that have hit the very same sample before."
-                        
-                        // // TODO: this is  bit hacky... there's probably a cleaner way.
-                        // // Restore total energy at this sample, then increment.
-                        // ir_raycast[i_ir] *= raycast_counts[i_ir]++; 
-                        // ir_raycast[i_ir] += e_contributed;
-                        // // Average by the incremented raycast count.
-                        // ir_raycast[i_ir] /= raycast_counts[i_ir];
 
                         // https://math.stackexchange.com/questions/22348/how-to-add-and-subtract-values-from-an-average
                         // average = average + ((value - average) / nValues)
@@ -358,10 +362,11 @@ public class ISMReverb : MonoBehaviour
                         // ++raycast_counts[i_ir];
                     }
                 } else {
-                    if (showTracedRays)
+                    if (showTracedRays && drawCount <= nDebugTraces)
                     {
                         // Debug.Log("Occluded.");
                         Debug.DrawLine(pos, listenerHit.point, Color.blue); // wall > occlusion
+                        drawCount++;
                     }
                 }
                 // === E4: select new direction of propagation ===
