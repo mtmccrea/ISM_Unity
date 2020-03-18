@@ -113,6 +113,11 @@ public class ISMReverb : MonoBehaviour
     /// </summary>
     ISMRenderSettings renderSettings;
 
+    /// <summary>
+    /// How man traced rays to show
+    /// </summary>
+    public int nDebugTraces = 3;
+
 
     /// <summary>
     /// Index of the impulse response slot in the convolution reverb plugin
@@ -236,6 +241,8 @@ public class ISMReverb : MonoBehaviour
         Vector3 listenerPosition = renderSettings.ListenerPosition;
 
         int rayCount = 0;
+        int drawCount = 0; // keep track of # of diffuse rays drawn
+
         while (AudioSettings.dspTime < stopTime)
         {
             // === E1: Cast a new ray towards random direction ===
@@ -298,6 +305,14 @@ public class ISMReverb : MonoBehaviour
                 // Alternatively, check also the hit distance compared to hitToListenerDist
                 if (!Physics.Raycast(pos, hitToListenerDir, out listenerHit, hitToListenerDist))
                 {
+                    // (E4.1)
+                    if (drawCount <= nDebugTraces)
+                    {
+                        Debug.DrawLine(SourcePosition, pos, Color.red);     // source > wall
+                        Debug.DrawLine(listenerPosition, pos, Color.green); // diffuse > listener
+                        drawCount++;
+                    }
+
                     // (E3) YOUR CODE HERE: Calculate the index of the ray in the impulse response
                     // (E3) YOUR CODE HERE: Calculate the *sample* index of the ray in the impulse response
                     //float ray_length = ...
@@ -339,6 +354,7 @@ public class ISMReverb : MonoBehaviour
                     }
                 } else {
                     // Debug.Log("Occluded.");
+                    Debug.DrawLine(pos, listenerHit.point, Color.blue); // wall > occlusion
                 }
                 // === E4: select new direction of propagation ===
                 // (E4) YOUR CODE HERE
