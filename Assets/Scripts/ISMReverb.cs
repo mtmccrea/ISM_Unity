@@ -114,6 +114,11 @@ public class ISMReverb : MonoBehaviour
     ISMRenderSettings renderSettings;
 
     /// <summary>
+    /// Boolean: show traced rays?
+    /// </summary>
+    public bool showTracedRays = true;
+
+    /// <summary>
     /// How man traced rays to show
     /// </summary>
     public int nDebugTraces = 3;
@@ -306,7 +311,7 @@ public class ISMReverb : MonoBehaviour
                 if (!Physics.Raycast(pos, hitToListenerDir, out listenerHit, hitToListenerDist))
                 {
                     // (E4.1)
-                    if (drawCount <= nDebugTraces)
+                    if (drawCount <= nDebugTraces && showTracedRays)
                     {
                         Debug.DrawLine(SourcePosition, pos, Color.red);     // source > wall
                         Debug.DrawLine(listenerPosition, pos, Color.green); // diffuse > listener
@@ -353,8 +358,11 @@ public class ISMReverb : MonoBehaviour
                         // ++raycast_counts[i_ir];
                     }
                 } else {
-                    // Debug.Log("Occluded.");
-                    Debug.DrawLine(pos, listenerHit.point, Color.blue); // wall > occlusion
+                    if (showTracedRays)
+                    {
+                        // Debug.Log("Occluded.");
+                        Debug.DrawLine(pos, listenerHit.point, Color.blue); // wall > occlusion
+                    }
                 }
                 // === E4: select new direction of propagation ===
                 // (E4) YOUR CODE HERE
